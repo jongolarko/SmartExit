@@ -1,0 +1,26 @@
+# Backend (Node.js)
+backend/node_modules/
+backend/.env
+backend/logs/
+
+# Flutter App
+app/.dart_tool/
+app/.packages
+app/build/
+app/*.iml
+app/.idea/
+app/android/.gradle/
+app/ios/Pods/
+app/ios/.symlinks/
+app/.flutter-plugins*
+
+# Docker
+*.log
+
+# IDE
+.vscode/
+*.swp
+.DS_Store
+
+# OS
+Thumbs.db

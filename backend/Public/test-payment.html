@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SmartExit Razorpay Test</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+
+<h2>SmartExit Razorpay Test</h2>
+<button id="payBtn">Pay Now</button>
+
+<script>
+document.getElementById("payBtn").onclick = async function () {
+  try {
+    // 1️⃣ Create order
+    const orderRes = await fetch("/payment/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: "8e7f2a7b-9dd8-43dd-8c7c-4357556e83ff"
+      })
+    });
+
+    const order = await orderRes.json();
+
+    // 2️⃣ Open Razorpay UI
+    const options = {
+      key: order.key,
+      amount: order.amount,
+      currency: order.currency,
+      name: "SmartExit",
+      description: "Store Checkout",
+      order_id: order.razorpay_order_id,
+
+      handler: async function (response) {
+        // 3️⃣ Verify payment
+        const verifyRes = await fetch("/payment/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(response)
+        });
+
+        const verifyData = await verifyRes.json();
+
+        if (verifyData.success) {
+          alert("✅ Payment Successful! Exit Allowed");
+        } else {
+          alert("❌ Payment verification failed");
+        }
+      }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.open();
+
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong. Check console.");
+  }
+};
+</script>
+
+</body>
+</html>
