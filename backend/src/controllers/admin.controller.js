@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const { success, error, paginated } = require("../utils/response");
+const inventoryService = require("../services/inventory.service");
 
 // GET /admin/dashboard - Dashboard statistics
 async function getDashboard(req, res, next) {
@@ -345,6 +346,184 @@ async function updateProduct(req, res, next) {
   }
 }
 
+// POST /admin/products/:id/stock - Adjust stock with audit logging
+async function adjustStock(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { quantity, change_type, reason } = req.body;
+    const userId = req.user.user_id;
+
+    // Validate change_type
+    const validTypes = ["adjustment", "receipt", "damage", "return", "correction"];
+    if (!validTypes.includes(change_type)) {
+      return error(res, `Invalid change type. Must be one of: ${validTypes.join(", ")}`, 400);
+    }
+
+    if (typeof quantity !== "number" || quantity === 0) {
+      return error(res, "Quantity must be a non-zero number", 400);
+    }
+
+    const result = await inventoryService.adjustStock(
+      id,
+      quantity,
+      change_type,
+      reason || null,
+      userId
+    );
+
+    if (!result.success) {
+      return error(res, result.error, 400);
+    }
+
+    return success(res, { product: result.product });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// DELETE /admin/products/:id - Soft delete product
+async function deleteProduct(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    // Check if product exists
+    const productRes = await pool.query(
+      "SELECT id, name FROM products WHERE id = $1",
+      [id]
+    );
+
+    if (productRes.rows.length === 0) {
+      return error(res, "Product not found", 404);
+    }
+
+    // Check if product has been used in any orders
+    const ordersRes = await pool.query(
+      "SELECT COUNT(*) FROM order_items WHERE product_id = $1",
+      [id]
+    );
+
+    if (parseInt(ordersRes.rows[0].count) > 0) {
+      // Soft delete - set stock to 0 and mark as inactive
+      await pool.query(
+        "UPDATE products SET stock = 0, updated_at = NOW() WHERE id = $1",
+        [id]
+      );
+      return success(res, {
+        message: "Product deactivated (has order history)",
+        soft_deleted: true,
+      });
+    }
+
+    // Hard delete if no order history
+    await pool.query("DELETE FROM products WHERE id = $1", [id]);
+
+    return success(res, {
+      message: "Product deleted successfully",
+      soft_deleted: false,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/inventory/low-stock - Get products below reorder level
+async function getLowStockProducts(req, res, next) {
+  try {
+    const products = await inventoryService.getLowStockProducts();
+    const summary = await inventoryService.getStockSummary();
+
+    return success(res, {
+      products,
+      summary: {
+        low_stock_count: parseInt(summary.low_stock_count),
+        out_of_stock_count: parseInt(summary.out_of_stock_count),
+        healthy_stock_count: parseInt(summary.healthy_stock_count),
+        total_products: parseInt(summary.total_products),
+        total_inventory_value: parseFloat(summary.total_inventory_value),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/inventory/report - Get stock movement report
+async function getInventoryReport(req, res, next) {
+  try {
+    const { start_date, end_date, product_id } = req.query;
+
+    // Default to last 30 days if no dates provided
+    const endDate = end_date ? new Date(end_date) : new Date();
+    const startDate = start_date
+      ? new Date(start_date)
+      : new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const movements = await inventoryService.getStockReport(
+      startDate,
+      endDate,
+      product_id || null
+    );
+
+    // Calculate summary statistics
+    const summary = movements.reduce(
+      (acc, m) => {
+        if (m.change_type === "sale") {
+          acc.total_sold += Math.abs(m.quantity_change);
+        } else if (m.change_type === "receipt") {
+          acc.total_received += m.quantity_change;
+        } else if (m.change_type === "damage") {
+          acc.total_damaged += Math.abs(m.quantity_change);
+        } else if (m.change_type === "return") {
+          acc.total_returned += m.quantity_change;
+        }
+        return acc;
+      },
+      { total_sold: 0, total_received: 0, total_damaged: 0, total_returned: 0 }
+    );
+
+    return success(res, {
+      movements,
+      summary,
+      date_range: {
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/products/:id/history - Get stock audit history for a product
+async function getProductHistory(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { limit = 50 } = req.query;
+
+    // Verify product exists
+    const productRes = await pool.query(
+      "SELECT id, name, barcode, stock, reorder_level FROM products WHERE id = $1",
+      [id]
+    );
+
+    if (productRes.rows.length === 0) {
+      return error(res, "Product not found", 404);
+    }
+
+    const history = await inventoryService.getProductAuditHistory(
+      id,
+      parseInt(limit)
+    );
+
+    return success(res, {
+      product: productRes.rows[0],
+      history,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getDashboard,
   getOrders,
@@ -354,4 +533,9 @@ module.exports = {
   getProducts,
   createProduct,
   updateProduct,
+  adjustStock,
+  deleteProduct,
+  getLowStockProducts,
+  getInventoryReport,
+  getProductHistory,
 };

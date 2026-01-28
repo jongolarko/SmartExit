@@ -23,5 +23,12 @@ router.get("/security-logs", adminController.getSecurityLogs);
 router.get("/products", adminController.getProducts);
 router.post("/products", adminController.createProduct);
 router.put("/products/:id", adminController.updateProduct);
+router.delete("/products/:id", adminController.deleteProduct);
+router.post("/products/:id/stock", adminController.adjustStock);
+router.get("/products/:id/history", adminController.getProductHistory);
+
+// Inventory
+router.get("/inventory/low-stock", adminController.getLowStockProducts);
+router.get("/inventory/report", adminController.getInventoryReport);
 
 module.exports = router;

@@ -597,4 +597,109 @@ class ApiService {
       return {"success": false, "error": "Network error: $e"};
     }
   }
+
+  /* =======================
+      INVENTORY ENDPOINTS (Admin)
+  ======================= */
+
+  /// Get low stock products
+  static Future<Map<String, dynamic>> getLowStockProducts() async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/inventory/low-stock"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get inventory report
+  static Future<Map<String, dynamic>> getInventoryReport({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? productId,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      var url = "$baseUrl/admin/inventory/report?";
+
+      if (startDate != null) {
+        url += "start_date=${startDate.toIso8601String()}&";
+      }
+      if (endDate != null) {
+        url += "end_date=${endDate.toIso8601String()}&";
+      }
+      if (productId != null) {
+        url += "product_id=$productId&";
+      }
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Adjust stock for a product
+  static Future<Map<String, dynamic>> adjustStock({
+    required String productId,
+    required int quantity,
+    required String changeType,
+    String? reason,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse("$baseUrl/admin/products/$productId/stock"),
+        headers: headers,
+        body: jsonEncode({
+          "quantity": quantity,
+          "change_type": changeType,
+          if (reason != null) "reason": reason,
+        }),
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get stock history for a product
+  static Future<Map<String, dynamic>> getProductStockHistory({
+    required String productId,
+    int limit = 50,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/products/$productId/history?limit=$limit"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Delete product
+  static Future<Map<String, dynamic>> deleteProduct({
+    required String productId,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.delete(
+        Uri.parse("$baseUrl/admin/products/$productId"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
 }

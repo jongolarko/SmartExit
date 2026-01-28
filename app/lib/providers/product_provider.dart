@@ -9,6 +9,8 @@ class Product {
   final double price;
   final String? description;
   final int? stock;
+  final int? reorderLevel;
+  final int? maxStock;
   final String? imageUrl;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -20,6 +22,8 @@ class Product {
     required this.price,
     this.description,
     this.stock,
+    this.reorderLevel,
+    this.maxStock,
     this.imageUrl,
     this.createdAt,
     this.updatedAt,
@@ -33,6 +37,8 @@ class Product {
       price: double.tryParse(json['price']?.toString() ?? '0') ?? 0,
       description: json['description'],
       stock: json['stock'] != null ? int.tryParse(json['stock'].toString()) : null,
+      reorderLevel: json['reorder_level'] != null ? int.tryParse(json['reorder_level'].toString()) : 10,
+      maxStock: json['max_stock'] != null ? int.tryParse(json['max_stock'].toString()) : 1000,
       imageUrl: json['image_url'],
       createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
       updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
@@ -46,6 +52,8 @@ class Product {
     double? price,
     String? description,
     int? stock,
+    int? reorderLevel,
+    int? maxStock,
     String? imageUrl,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -57,14 +65,25 @@ class Product {
       price: price ?? this.price,
       description: description ?? this.description,
       stock: stock ?? this.stock,
+      reorderLevel: reorderLevel ?? this.reorderLevel,
+      maxStock: maxStock ?? this.maxStock,
       imageUrl: imageUrl ?? this.imageUrl,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
-  bool get isLowStock => stock != null && stock! < 10;
+  /// Check if stock is below reorder level
+  bool get isLowStock => stock != null && reorderLevel != null && stock! < reorderLevel! && stock! > 0;
+
+  /// Check if product is out of stock
   bool get isOutOfStock => stock != null && stock! == 0;
+
+  /// Stock percentage for visual indicators
+  double get stockPercentage =>
+      (stock != null && maxStock != null && maxStock! > 0)
+          ? (stock! / maxStock!).clamp(0, 1)
+          : 0;
 }
 
 // Products state

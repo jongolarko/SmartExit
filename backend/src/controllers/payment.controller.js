@@ -5,6 +5,7 @@ const { emitNewOrder } = require("../config/socket");
 const { success, error } = require("../utils/response");
 const logger = require("../utils/logger");
 const notificationService = require("../services/notification.service");
+const inventoryService = require("../services/inventory.service");
 
 // POST /payment/create-order - Create Razorpay order
 async function createOrder(req, res, next) {
@@ -126,6 +127,9 @@ async function verifyPayment(req, res, next) {
         [userId]
       );
 
+      // Track products that need low stock alerts
+      const lowStockProducts = [];
+
       for (const item of cartItems.rows) {
         await client.query(
           `INSERT INTO order_items (id, order_id, product_id, quantity, price)
@@ -139,13 +143,53 @@ async function verifyPayment(req, res, next) {
           ]
         );
 
-        // Decrease stock
-        await client.query(
-          `UPDATE products
-           SET stock = GREATEST(0, stock - $1)
-           WHERE id = $2 AND stock IS NOT NULL`,
-          [item.quantity, item.product_id]
+        // Get current stock and reorder level before update
+        const productRes = await client.query(
+          "SELECT name, stock, reorder_level FROM products WHERE id = $1",
+          [item.product_id]
         );
+
+        if (productRes.rows.length > 0) {
+          const product = productRes.rows[0];
+          const currentStock = product.stock || 0;
+          const newStock = Math.max(0, currentStock - item.quantity);
+
+          // Decrease stock
+          await client.query(
+            `UPDATE products
+             SET stock = $1
+             WHERE id = $2 AND stock IS NOT NULL`,
+            [newStock, item.product_id]
+          );
+
+          // Create audit log for the sale
+          await client.query(
+            `INSERT INTO stock_audit_logs
+             (product_id, change_type, quantity_change, quantity_before, quantity_after, reason, performed_by)
+             VALUES ($1, 'sale', $2, $3, $4, $5, $6)`,
+            [
+              item.product_id,
+              -item.quantity,
+              currentStock,
+              newStock,
+              `Order ${order_id}`,
+              userId,
+            ]
+          );
+
+          // Check if stock fell below reorder level
+          if (
+            newStock < product.reorder_level &&
+            currentStock >= product.reorder_level
+          ) {
+            lowStockProducts.push({
+              id: item.product_id,
+              name: product.name,
+              stock: newStock,
+              reorderLevel: product.reorder_level,
+            });
+          }
+        }
       }
 
       // Mark cart as completed
@@ -174,6 +218,16 @@ async function verifyPayment(req, res, next) {
         order_id,
         parseFloat(order.total_amount)
       );
+
+      // Send low stock alerts to admins (outside transaction)
+      for (const product of lowStockProducts) {
+        inventoryService.triggerLowStockAlert(
+          product.id,
+          product.name,
+          product.stock,
+          product.reorderLevel
+        );
+      }
 
       return success(res, {
         message: "Payment verified successfully",

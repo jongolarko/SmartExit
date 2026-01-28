@@ -6,6 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 
 import '../../core/core.dart';
 import '../../providers/providers.dart';
+import 'inventory_screen.dart';
 import 'product_list_screen.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
@@ -32,9 +33,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
     );
     _animController.forward();
 
-    // Fetch dashboard data
+    // Fetch dashboard data and inventory data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(adminProvider.notifier).fetchDashboard();
+      ref.read(inventoryProvider.notifier).fetchLowStock();
     });
   }
 
@@ -520,6 +522,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
   }
 
   Widget _buildQuickActions() {
+    final inventoryState = ref.watch(inventoryProvider);
+    final lowStockCount = inventoryState.summary?.lowStockCount ?? 0;
+    final outOfStockCount = inventoryState.summary?.outOfStockCount ?? 0;
+    final totalAlerts = lowStockCount + outOfStockCount;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -553,24 +560,30 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: _buildQuickActionCard(
-                icon: Icons.receipt_long_outlined,
-                label: 'Orders',
-                color: AppColors.accent,
+                icon: Icons.warehouse_outlined,
+                label: 'Inventory',
+                color: totalAlerts > 0 ? AppColors.warning : AppColors.accent,
+                badge: totalAlerts > 0 ? totalAlerts : null,
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  // TODO: Navigate to orders list
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const InventoryScreen(),
+                    ),
+                  );
                 },
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: _buildQuickActionCard(
-                icon: Icons.people_outline_rounded,
-                label: 'Users',
+                icon: Icons.receipt_long_outlined,
+                label: 'Orders',
                 color: AppColors.security,
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  // TODO: Navigate to users list
+                  // TODO: Navigate to orders list
                 },
               ),
             ),
@@ -585,6 +598,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
     required String label,
     required Color color,
     required VoidCallback onTap,
+    int? badge,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -597,14 +611,39 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
         ),
         child: Column(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: AppSpacing.borderRadiusSm,
-              ),
-              child: Icon(icon, color: color, size: 20),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: AppSpacing.borderRadiusSm,
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                if (badge != null && badge > 0)
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.error,
+                        borderRadius: AppSpacing.borderRadiusFull,
+                      ),
+                      child: Text(
+                        badge > 9 ? '9+' : badge.toString(),
+                        style: AppTypography.labelSmall.copyWith(
+                          color: AppColors.pure,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
