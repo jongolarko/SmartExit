@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/core.dart';
 import '../../providers/providers.dart';
+import '../../providers/orders_admin_provider.dart' as admin;
 import 'user_details_screen.dart';
 
 class AdminOrderDetailsScreen extends ConsumerStatefulWidget {
@@ -355,7 +356,7 @@ class _AdminOrderDetailsScreenState
     );
   }
 
-  Widget _buildItemsCard(List<OrderItem> items) {
+  Widget _buildItemsCard(List<admin.OrderItem> items) {
     return Container(
       padding: AppSpacing.card,
       decoration: BoxDecoration(

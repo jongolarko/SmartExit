@@ -41,13 +41,13 @@ class DateRangeSelector extends StatelessWidget {
       selected: isSelected,
       onSelected: (_) => onRangeChanged(value),
       backgroundColor: Colors.transparent,
-      selectedColor: AppColors.primary.withOpacity(0.2),
+      selectedColor: AppColors.admin.withOpacity(0.2),
       labelStyle: TextStyle(
-        color: isSelected ? AppColors.primary : AppColors.textSecondary,
+        color: isSelected ? AppColors.admin : AppColors.steel,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
       ),
       side: BorderSide(
-        color: isSelected ? AppColors.primary : AppColors.border,
+        color: isSelected ? AppColors.admin : AppColors.mist,
         width: 1.5,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -60,8 +60,8 @@ class DateRangeSelector extends StatelessWidget {
       icon: const Icon(Icons.calendar_today, size: 16),
       label: const Text('Custom'),
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.textSecondary,
-        side: const BorderSide(color: AppColors.border),
+        foregroundColor: AppColors.steel,
+        side: const BorderSide(color: AppColors.mist),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );

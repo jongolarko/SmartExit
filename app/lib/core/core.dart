@@ -22,3 +22,6 @@ export 'widgets/scanner/scanner_overlay.dart';
 
 // Widgets - Animations
 export 'widgets/animations/animated_check.dart';
+
+// Widgets - Analytics
+export 'widgets/date_range_selector.dart';

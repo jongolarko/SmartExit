@@ -10,6 +10,9 @@ import 'inventory_screen.dart';
 import 'orders_list_screen.dart';
 import 'product_list_screen.dart';
 import 'users_list_screen.dart';
+import 'sales_reports_screen.dart';
+import 'product_performance_screen.dart';
+import 'customer_analytics_screen.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -35,10 +38,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
     );
     _animController.forward();
 
-    // Fetch dashboard data and inventory data
+    // Fetch dashboard data, inventory data, and analytics data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(adminProvider.notifier).fetchDashboard();
       ref.read(inventoryProvider.notifier).fetchLowStock();
+      ref.read(analyticsProvider.notifier).fetchRevenueChart();
+      ref.read(analyticsProvider.notifier).fetchKpiTrends();
     });
   }
 
@@ -96,6 +101,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
                 const SizedBox(height: AppSpacing.xl),
                 _buildMetricCards(adminState.data),
                 const SizedBox(height: AppSpacing.xl),
+                _buildDateRangeSelector(),
+                const SizedBox(height: AppSpacing.md),
                 _buildRevenueChart(adminState.data),
                 const SizedBox(height: AppSpacing.xl),
                 _buildQuickActions(),
@@ -379,7 +386,28 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
   }
 
   Widget _buildRevenueChart(AdminDashboardData? data) {
-    final todayRevenue = data?.todayRevenue ?? 0;
+    final analyticsState = ref.watch(analyticsProvider);
+
+    if (analyticsState.isLoading && analyticsState.revenueData.isEmpty) {
+      return Container(
+        height: 250,
+        padding: AppSpacing.card,
+        decoration: BoxDecoration(
+          color: AppColors.pure,
+          borderRadius: AppSpacing.borderRadiusXl,
+          boxShadow: AppShadows.sm,
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(color: AppColors.admin),
+        ),
+      );
+    }
+
+    // Use dynamic data if available, otherwise show empty state
+    final revenueData = analyticsState.revenueData.isNotEmpty
+        ? analyticsState.revenueData
+        : [];
+
     return Container(
       padding: AppSpacing.card,
       decoration: BoxDecoration(
@@ -399,128 +427,144 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.cloud,
-                  borderRadius: AppSpacing.borderRadiusFull,
-                ),
-                child: Text(
-                  'This Week',
-                  style: AppTypography.labelSmall.copyWith(
-                    color: AppColors.steel,
+              if (analyticsState.comparison != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: analyticsState.comparison!.percentChange >= 0
+                        ? AppColors.accentLight
+                        : AppColors.warningLight,
+                    borderRadius: AppSpacing.borderRadiusFull,
+                  ),
+                  child: Text(
+                    '${analyticsState.comparison!.percentChange > 0 ? '+' : ''}${analyticsState.comparison!.percentChange.toStringAsFixed(1)}%',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: analyticsState.comparison!.percentChange >= 0
+                          ? AppColors.accent
+                          : AppColors.warning,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
           SizedBox(
             height: 200,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: 20000,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: AppColors.mist,
-                    strokeWidth: 1,
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 45,
-                      interval: 20000,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          '${(value / 1000).toStringAsFixed(0)}k',
-                          style: AppTypography.labelSmall,
-                        );
-                      },
+            child: revenueData.isEmpty
+                ? Center(
+                    child: Text(
+                      'No revenue data available',
+                      style: AppTypography.bodySmall,
                     ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      getTitlesWidget: (value, meta) {
-                        final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                        if (value.toInt() >= 0 && value.toInt() < days.length) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              days[value.toInt()],
-                              style: AppTypography.labelSmall,
-                            ),
-                          );
-                        }
-                        return const Text('');
-                      },
-                    ),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                minX: 0,
-                maxX: 6,
-                minY: 0,
-                maxY: 60000,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: [
-                      const FlSpot(0, 28000),
-                      const FlSpot(1, 35000),
-                      const FlSpot(2, 32000),
-                      const FlSpot(3, 41000),
-                      const FlSpot(4, 38000),
-                      const FlSpot(5, 52000),
-                      FlSpot(6, todayRevenue > 0 ? todayRevenue : 45680),
-                    ],
-                    isCurved: true,
-                    color: AppColors.admin,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (spot, percent, barData, index) {
-                        return FlDotCirclePainter(
-                          radius: 4,
-                          color: AppColors.pure,
-                          strokeWidth: 2,
-                          strokeColor: AppColors.admin,
-                        );
-                      },
-                    ),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.admin.withOpacity(0.2),
-                          AppColors.admin.withOpacity(0.0),
-                        ],
+                  )
+                : LineChart(
+                    LineChartData(
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        getDrawingHorizontalLine: (value) => FlLine(
+                          color: AppColors.mist,
+                          strokeWidth: 1,
+                        ),
                       ),
+                      titlesData: FlTitlesData(
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 45,
+                            getTitlesWidget: (value, meta) {
+                              return Text(
+                                '${(value / 1000).toStringAsFixed(0)}k',
+                                style: AppTypography.labelSmall,
+                              );
+                            },
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 30,
+                            getTitlesWidget: (value, meta) {
+                              if (value.toInt() >= 0 && value.toInt() < revenueData.length) {
+                                final date = revenueData[value.toInt()].date;
+                                final dayName = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][date.weekday - 1];
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    dayName,
+                                    style: AppTypography.labelSmall,
+                                  ),
+                                );
+                              }
+                              return const Text('');
+                            },
+                          ),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      minX: 0,
+                      maxX: (revenueData.length - 1).toDouble(),
+                      minY: 0,
+                      maxY: _calculateMaxY(revenueData),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: revenueData.asMap().entries.map((entry) {
+                            return FlSpot(
+                              entry.key.toDouble(),
+                              entry.value.revenue,
+                            );
+                          }).toList(),
+                          isCurved: true,
+                          color: AppColors.admin,
+                          barWidth: 3,
+                          isStrokeCapRound: true,
+                          dotData: FlDotData(
+                            show: true,
+                            getDotPainter: (spot, percent, barData, index) {
+                              return FlDotCirclePainter(
+                                radius: 4,
+                                color: AppColors.pure,
+                                strokeWidth: 2,
+                                strokeColor: AppColors.admin,
+                              );
+                            },
+                          ),
+                          belowBarData: BarAreaData(
+                            show: true,
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                AppColors.admin.withOpacity(0.2),
+                                AppColors.admin.withOpacity(0.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
           ),
         ],
       ),
     );
+  }
+
+  double _calculateMaxY(List<dynamic> data) {
+    if (data.isEmpty) return 100000;
+    final maxRevenue = data.map((d) => d.revenue).reduce((a, b) => a > b ? a : b);
+    final roundedMax = ((maxRevenue / 10000).ceil() * 10000).toDouble();
+    return roundedMax > 0 ? roundedMax : 100000;
   }
 
   Widget _buildQuickActions() {
@@ -617,7 +661,80 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
             ),
           ],
         ),
+        const SizedBox(height: AppSpacing.md),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: AppSpacing.sm),
+          child: Text(
+            'Analytics',
+            style: AppTypography.titleMedium.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.bar_chart_rounded,
+                label: 'Sales',
+                color: AppColors.admin,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SalesReportsScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.inventory_2_outlined,
+                label: 'Products',
+                color: AppColors.accent,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ProductPerformanceScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        _buildQuickActionCard(
+          icon: Icons.people_outline_rounded,
+          label: 'Customer Analytics',
+          color: AppColors.security,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const CustomerAnalyticsScreen(),
+              ),
+            );
+          },
+        ),
       ],
+    );
+  }
+
+  Widget _buildDateRangeSelector() {
+    final analyticsState = ref.watch(analyticsProvider);
+
+    return DateRangeSelector(
+      selectedRange: analyticsState.selectedRange,
+      onRangeChanged: (range) {
+        ref.read(analyticsProvider.notifier).fetchRevenueChart(range: range);
+      },
     );
   }
 

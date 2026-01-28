@@ -62,10 +62,18 @@ class ExportService {
   }
 
   /// Export customer analytics report
-  static Future<void> exportCustomerReport() async {
+  static Future<void> exportCustomers() async {
     await exportAndShare(
       endpoint: '/admin/export/customers',
       filename: 'customer_analytics_${_formatDate(DateTime.now())}.csv',
+    );
+  }
+
+  /// Export product list
+  static Future<void> exportProducts() async {
+    await exportAndShare(
+      endpoint: '/admin/export/products',
+      filename: 'products_${_formatDate(DateTime.now())}.csv',
     );
   }
 
