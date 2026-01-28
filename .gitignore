@@ -24,3 +24,23 @@ app/.flutter-plugins*
 
 # OS
 Thumbs.db
+
+# Test files
+backend/test-*.js
+!backend/test-analytics.js
+backend/nul
+nul
+
+# CSV exports (test outputs)
+*.csv
+
+# Playwright test directory
+.playwright-mcp/
+
+# Utility scripts
+backend/generate-token.js
+backend/list-routes.js
+
+# Analytics controller (not used, functionality in admin.controller.js)
+backend/src/controllers/analytics.controller.js
+backend/src/routes/analytics.routes.js
