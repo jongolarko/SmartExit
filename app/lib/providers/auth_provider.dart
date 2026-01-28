@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../services/socket_service.dart';
+import '../services/notification_service.dart';
 
 // Auth state
 class AuthState {
@@ -77,6 +78,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
           // Connect to Socket.io
           await SocketService.instance.connect();
+
+          // Initialize and register push notifications
+          _initializeNotifications();
           return;
         }
       }
@@ -85,6 +89,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
 
     state = state.copyWith(isLoading: false);
+  }
+
+  /// Initialize push notifications and register token
+  Future<void> _initializeNotifications() async {
+    try {
+      final initialized = await NotificationService.instance.initialize();
+      if (initialized) {
+        await NotificationService.instance.registerToken();
+      }
+    } catch (e) {
+      // Notifications are optional, don't fail auth
+    }
   }
 
   /// Register a new user (sends OTP)
@@ -132,7 +148,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Verify OTP and complete authentication
-  Future<bool> verifyOtp(String otp) async {
+  /// If [expectedRole] is provided, validates that the user's role matches.
+  Future<bool> verifyOtp(String otp, {String? expectedRole}) async {
     if (state.pendingPhone == null) {
       state = state.copyWith(error: 'No phone number pending');
       return false;
@@ -147,6 +164,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     if (result['success'] == true) {
       final user = result['user'];
+      final actualRole = user['role'] as String?;
+
+      // Validate role if expectedRole is provided
+      if (expectedRole != null && actualRole != expectedRole) {
+        // Clear tokens since we don't want to keep this session
+        await ApiService.logout();
+        state = state.copyWith(
+          isLoading: false,
+          error: 'This account is registered as $actualRole. Please use the correct login option.',
+        );
+        return false;
+      }
+
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: true,
@@ -160,6 +190,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       // Connect to Socket.io
       await SocketService.instance.connect();
+
+      // Initialize and register push notifications
+      _initializeNotifications();
+
       return true;
     }
 
@@ -173,6 +207,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Logout
   Future<void> logout() async {
     state = state.copyWith(isLoading: true);
+
+    // Unregister push notification token
+    try {
+      await NotificationService.instance.unregisterToken();
+    } catch (e) {
+      // Ignore errors
+    }
 
     await ApiService.logout();
     SocketService.instance.disconnect();

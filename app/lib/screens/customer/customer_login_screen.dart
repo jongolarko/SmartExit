@@ -81,11 +81,17 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
       return;
     }
 
+    // Validate name for new users
+    if (isNewUser && nameCtrl.text.trim().isEmpty) {
+      _showError("Please enter your name");
+      return;
+    }
+
     HapticFeedback.lightImpact();
     final auth = ref.read(authProvider.notifier);
 
     bool success;
-    if (isNewUser && nameCtrl.text.trim().isNotEmpty) {
+    if (isNewUser) {
       success = await auth.register(phoneCtrl.text.trim(), nameCtrl.text.trim());
     } else {
       success = await auth.sendOtp(phoneCtrl.text.trim());
@@ -106,7 +112,9 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
     HapticFeedback.lightImpact();
     final auth = ref.read(authProvider.notifier);
 
-    final success = await auth.verifyOtp(otpCtrl.text.trim());
+    // Pass the expected role for validation (default to 'customer' if no roleHint)
+    final expectedRole = widget.roleHint ?? 'customer';
+    final success = await auth.verifyOtp(otpCtrl.text.trim(), expectedRole: expectedRole);
 
     if (success) {
       HapticFeedback.mediumImpact();

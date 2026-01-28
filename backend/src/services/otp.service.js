@@ -2,6 +2,20 @@ const crypto = require("crypto");
 const pool = require("../config/db");
 const logger = require("../utils/logger");
 
+// Lazy-loaded Twilio client
+let twilioClient = null;
+
+function getTwilioClient() {
+  if (!twilioClient && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+    const twilio = require("twilio");
+    twilioClient = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+  }
+  return twilioClient;
+}
+
 // OTP expiry time in minutes
 const OTP_EXPIRY_MINUTES = 5;
 
@@ -75,7 +89,7 @@ async function verifyOTP(phone, otp) {
   return { valid: true };
 }
 
-// Send OTP via SMS (placeholder - integrate with MSG91/Twilio)
+// Send OTP via SMS using Twilio
 async function sendOTP(phone, otp) {
   // In development, just log the OTP
   if (process.env.NODE_ENV !== "production") {
@@ -83,23 +97,31 @@ async function sendOTP(phone, otp) {
     return { sent: true, dev: true };
   }
 
-  // TODO: Integrate with SMS provider (MSG91, Twilio, etc.)
-  // Example with MSG91:
-  // const response = await fetch('https://api.msg91.com/api/v5/otp', {
-  //   method: 'POST',
-  //   headers: {
-  //     'authkey': process.env.MSG91_AUTH_KEY,
-  //     'Content-Type': 'application/json'
-  //   },
-  //   body: JSON.stringify({
-  //     template_id: process.env.MSG91_TEMPLATE_ID,
-  //     mobile: `91${phone}`,
-  //     otp: otp
-  //   })
-  // });
+  // Get Twilio client
+  const client = getTwilioClient();
 
-  logger.info(`OTP sent to ${phone}`);
-  return { sent: true };
+  if (!client) {
+    logger.warn("Twilio not configured, falling back to console logging");
+    logger.info(`[FALLBACK] OTP for ${phone}: ${otp}`);
+    return { sent: true, fallback: true };
+  }
+
+  try {
+    // Format phone number with country code (default +91 for India)
+    const formattedPhone = phone.startsWith("+") ? phone : `+91${phone}`;
+
+    await client.messages.create({
+      body: `Your SmartExit verification code is: ${otp}. Valid for 5 minutes.`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: formattedPhone,
+    });
+
+    logger.info(`OTP sent successfully to ${formattedPhone}`);
+    return { sent: true };
+  } catch (err) {
+    logger.error(`Failed to send OTP via Twilio: ${err.message}`);
+    throw new Error("Failed to send OTP. Please try again.");
+  }
 }
 
 // Rate limiting check (max 3 OTPs per phone per 10 minutes)

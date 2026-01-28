@@ -2,6 +2,7 @@ const pool = require("../config/db");
 const { emitExitDecision, emitFraudAlert } = require("../config/socket");
 const { success, error } = require("../utils/response");
 const logger = require("../utils/logger");
+const notificationService = require("../services/notification.service");
 
 // POST /security/verify-qr - Verify exit QR code
 async function verifyQR(req, res, next) {
@@ -136,6 +137,20 @@ async function allowExit(req, res, next) {
           ? "Exit approved! Please proceed."
           : "Exit denied. Please contact store staff.",
     });
+
+    // Send push notification to customer
+    if (decision === "allow") {
+      notificationService.sendExitApprovedNotification(
+        record.customer_id,
+        exit_token
+      );
+    } else {
+      notificationService.sendExitDeniedNotification(
+        record.customer_id,
+        exit_token,
+        "Please contact store staff for assistance."
+      );
+    }
 
     return success(res, {
       message: `Exit ${decision === "allow" ? "allowed" : "denied"}`,

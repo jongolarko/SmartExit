@@ -439,4 +439,162 @@ class ApiService {
       return {"success": false, "error": "Network error: $e"};
     }
   }
+
+  /* =======================
+      ORDERS ENDPOINTS
+  ======================= */
+
+  /// Get current user's orders
+  static Future<Map<String, dynamic>> getMyOrders({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/orders?page=$page&limit=$limit"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get order details
+  static Future<Map<String, dynamic>> getOrderDetails({
+    required String orderId,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/orders/$orderId"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /* =======================
+      PRODUCTS ENDPOINTS (Admin)
+  ======================= */
+
+  /// Get products list
+  static Future<Map<String, dynamic>> getProducts({
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      var url = "$baseUrl/admin/products?page=$page&limit=$limit";
+      if (search != null && search.isNotEmpty) url += "&search=$search";
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Create product
+  static Future<Map<String, dynamic>> createProduct({
+    required String barcode,
+    required String name,
+    required double price,
+    String? description,
+    int? stock,
+    String? imageUrl,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse("$baseUrl/admin/products"),
+        headers: headers,
+        body: jsonEncode({
+          "barcode": barcode,
+          "name": name,
+          "price": price,
+          if (description != null) "description": description,
+          if (stock != null) "stock": stock,
+          if (imageUrl != null) "image_url": imageUrl,
+        }),
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Update product
+  static Future<Map<String, dynamic>> updateProduct({
+    required String productId,
+    String? name,
+    double? price,
+    String? description,
+    int? stock,
+    String? imageUrl,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.put(
+        Uri.parse("$baseUrl/admin/products/$productId"),
+        headers: headers,
+        body: jsonEncode({
+          if (name != null) "name": name,
+          if (price != null) "price": price,
+          if (description != null) "description": description,
+          if (stock != null) "stock": stock,
+          if (imageUrl != null) "image_url": imageUrl,
+        }),
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /* =======================
+      NOTIFICATION ENDPOINTS
+  ======================= */
+
+  /// Register device token for push notifications
+  static Future<Map<String, dynamic>> registerDeviceToken({
+    required String token,
+    required String platform,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse("$baseUrl/notifications/register"),
+        headers: headers,
+        body: jsonEncode({"token": token, "platform": platform}),
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Unregister device token
+  static Future<Map<String, dynamic>> unregisterDeviceToken({
+    required String token,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse("$baseUrl/notifications/unregister"),
+        headers: headers,
+        body: jsonEncode({"token": token}),
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
 }

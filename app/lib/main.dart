@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import 'core/core.dart';
 import 'providers/providers.dart';
+import 'services/notification_service.dart';
 import 'screens/security/security_home_screen.dart';
 import 'screens/customer/customer_login_screen.dart';
 import 'screens/customer/product_scan_screen.dart';
 import 'screens/customer/cart_screen.dart';
+import 'screens/customer/order_history_screen.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -19,6 +22,14 @@ void main() {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
+
+  // Initialize Firebase (notifications will be initialized after auth)
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase initialization failed: $e');
+  }
+
   runApp(const ProviderScope(child: SmartExitApp()));
 }
 
@@ -176,6 +187,21 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const CartScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _buildActionCard(
+              icon: Icons.receipt_long_outlined,
+              title: 'Order History',
+              description: 'View past orders',
+              color: AppColors.steel,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const OrderHistoryScreen(),
                   ),
                 );
               },

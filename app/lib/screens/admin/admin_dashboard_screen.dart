@@ -6,6 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 
 import '../../core/core.dart';
 import '../../providers/providers.dart';
+import 'product_list_screen.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -92,6 +93,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
                 _buildMetricCards(adminState.data),
                 const SizedBox(height: AppSpacing.xl),
                 _buildRevenueChart(adminState.data),
+                const SizedBox(height: AppSpacing.xl),
+                _buildQuickActions(),
                 const SizedBox(height: AppSpacing.xl),
                 _buildRecentActivityHeader(),
               ],
@@ -512,6 +515,107 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: AppSpacing.sm),
+          child: Text(
+            'Quick Actions',
+            style: AppTypography.titleMedium.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.inventory_2_outlined,
+                label: 'Products',
+                color: AppColors.admin,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ProductListScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.receipt_long_outlined,
+                label: 'Orders',
+                color: AppColors.accent,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  // TODO: Navigate to orders list
+                },
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.people_outline_rounded,
+                label: 'Users',
+                color: AppColors.security,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  // TODO: Navigate to users list
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickActionCard({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: AppSpacing.cardSm,
+        decoration: BoxDecoration(
+          color: AppColors.pure,
+          borderRadius: AppSpacing.borderRadiusMd,
+          boxShadow: AppShadows.sm,
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: AppSpacing.borderRadiusSm,
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              label,
+              style: AppTypography.labelMedium.copyWith(
+                color: AppColors.voidBlack,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

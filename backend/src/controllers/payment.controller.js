@@ -4,6 +4,7 @@ const razorpay = require("../config/razorpay");
 const { emitNewOrder } = require("../config/socket");
 const { success, error } = require("../utils/response");
 const logger = require("../utils/logger");
+const notificationService = require("../services/notification.service");
 
 // POST /payment/create-order - Create Razorpay order
 async function createOrder(req, res, next) {
@@ -166,6 +167,13 @@ async function verifyPayment(req, res, next) {
         amount: order.total_amount,
         items: cartItems.rows.length,
       });
+
+      // Send push notification to customer
+      notificationService.sendPaymentSuccessNotification(
+        userId,
+        order_id,
+        parseFloat(order.total_amount)
+      );
 
       return success(res, {
         message: "Payment verified successfully",
