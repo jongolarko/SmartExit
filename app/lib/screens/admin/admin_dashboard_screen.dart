@@ -1,60 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 import '../../core/core.dart';
+import '../../providers/providers.dart';
 
-class AdminDashboardScreen extends StatefulWidget {
+class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+  ConsumerState<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
 }
 
-class _AdminDashboardScreenState extends State<AdminDashboardScreen>
+class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
-
-  // Mock data - would come from API in production
-  final double todayRevenue = 45680;
-  final int totalOrders = 127;
-  final int activeUsers = 89;
-  final int alerts = 3;
-
-  final List<Map<String, dynamic>> recentActivity = [
-    {
-      "type": "order",
-      "description": "New order completed",
-      "amount": 1250,
-      "time": "2 min ago",
-    },
-    {
-      "type": "exit",
-      "description": "Exit QR verified",
-      "customer": "Rahul Sharma",
-      "time": "5 min ago",
-    },
-    {
-      "type": "order",
-      "description": "New order completed",
-      "amount": 890,
-      "time": "8 min ago",
-    },
-    {
-      "type": "alert",
-      "description": "Invalid QR attempt",
-      "location": "Gate 2",
-      "time": "15 min ago",
-    },
-    {
-      "type": "exit",
-      "description": "Exit QR verified",
-      "customer": "Priya Patel",
-      "time": "18 min ago",
-    },
-  ];
 
   @override
   void initState() {
@@ -67,6 +30,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       CurvedAnimation(parent: _animController, curve: Curves.easeOut),
     );
     _animController.forward();
+
+    // Fetch dashboard data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(adminProvider.notifier).fetchDashboard();
+    });
   }
 
   @override
@@ -77,6 +45,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    final adminState = ref.watch(adminProvider);
+
     return Scaffold(
       backgroundColor: AppColors.pearl,
       body: SafeArea(
@@ -88,34 +58,105 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               child: child,
             );
           },
-          child: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: AppSpacing.screenAll,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildMetricCards(),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildRevenueChart(),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildRecentActivityHeader(),
-                    ],
-                  ),
+          child: RefreshIndicator(
+            onRefresh: () => ref.read(adminProvider.notifier).refresh(),
+            color: AppColors.admin,
+            child: _buildContent(adminState),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(AdminState adminState) {
+    // Show error state
+    if (adminState.error != null && adminState.data == null) {
+      return _buildErrorState(adminState.error!);
+    }
+
+    // Show loading state on initial load
+    if (adminState.isLoading && adminState.data == null) {
+      return _buildLoadingState();
+    }
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: AppSpacing.screenAll,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: AppSpacing.xl),
+                _buildMetricCards(adminState.data),
+                const SizedBox(height: AppSpacing.xl),
+                _buildRevenueChart(adminState.data),
+                const SizedBox(height: AppSpacing.xl),
+                _buildRecentActivityHeader(),
+              ],
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+          sliver: _buildActivityList(adminState.data),
+        ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: AppSpacing.xl),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return const Center(
+      child: CircularProgressIndicator(
+        color: AppColors.admin,
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return Center(
+      child: Padding(
+        padding: AppSpacing.screenAll,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: 64,
+              color: AppColors.warning,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Failed to load dashboard',
+              style: AppTypography.titleMedium.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              error,
+              style: AppTypography.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton.icon(
+              onPressed: () => ref.read(adminProvider.notifier).fetchDashboard(),
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.admin,
+                foregroundColor: AppColors.pure,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.sm,
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                sliver: _buildActivityList(),
-              ),
-              const SliverToBoxAdapter(
-                child: SizedBox(height: AppSpacing.xl),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -124,11 +165,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   Widget _buildHeader() {
     return Row(
       children: [
-        // Back button
+        // Logout button
         GestureDetector(
-          onTap: () {
+          onTap: () async {
             HapticFeedback.lightImpact();
-            Navigator.pop(context);
+            await ref.read(authProvider.notifier).logout();
           },
           child: Container(
             width: 44,
@@ -140,7 +181,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             ),
             child: const Center(
               child: Icon(
-                Icons.arrow_back_ios_new_rounded,
+                Icons.logout_rounded,
                 size: 18,
                 color: AppColors.voidBlack,
               ),
@@ -192,7 +233,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  Widget _buildMetricCards() {
+  Widget _buildMetricCards(AdminDashboardData? data) {
+    final todayRevenue = data?.todayRevenue ?? 0;
+    final totalOrders = data?.totalOrders ?? 0;
+    final activeUsers = data?.totalUsers ?? 0;
+    final alerts = data?.totalAlerts ?? 0;
+    final todayOrders = data?.todayOrders ?? 0;
+    final todayUsers = data?.todayUsers ?? 0;
+
     return Column(
       children: [
         Row(
@@ -203,7 +251,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 value: '\u20B9${_formatNumber(todayRevenue)}',
                 icon: Icons.account_balance_wallet_outlined,
                 color: AppColors.admin,
-                trend: '+12.5%',
+                trend: todayRevenue > 0 ? 'Today' : null,
                 isPositive: true,
               ),
             ),
@@ -214,7 +262,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 value: totalOrders.toString(),
                 icon: Icons.receipt_long_outlined,
                 color: AppColors.accent,
-                trend: '+8.2%',
+                trend: todayOrders > 0 ? '+$todayOrders today' : null,
                 isPositive: true,
               ),
             ),
@@ -225,11 +273,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           children: [
             Expanded(
               child: _buildMetricCard(
-                label: 'Active Users',
+                label: 'Total Users',
                 value: activeUsers.toString(),
                 icon: Icons.people_outline_rounded,
                 color: AppColors.security,
-                trend: '+3.1%',
+                trend: todayUsers > 0 ? '+$todayUsers today' : null,
                 isPositive: true,
               ),
             ),
@@ -240,7 +288,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 value: alerts.toString(),
                 icon: Icons.warning_amber_rounded,
                 color: alerts > 0 ? AppColors.warning : AppColors.accent,
-                trend: alerts > 0 ? '$alerts new' : 'None',
+                trend: alerts > 0 ? '$alerts pending' : 'None',
                 isPositive: alerts == 0,
               ),
             ),
@@ -323,7 +371,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  Widget _buildRevenueChart() {
+  Widget _buildRevenueChart(AdminDashboardData? data) {
+    final todayRevenue = data?.todayRevenue ?? 0;
     return Container(
       padding: AppSpacing.card,
       decoration: BoxDecoration(
@@ -422,14 +471,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 maxY: 60000,
                 lineBarsData: [
                   LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 28000),
-                      FlSpot(1, 35000),
-                      FlSpot(2, 32000),
-                      FlSpot(3, 41000),
-                      FlSpot(4, 38000),
-                      FlSpot(5, 52000),
-                      FlSpot(6, 45680),
+                    spots: [
+                      const FlSpot(0, 28000),
+                      const FlSpot(1, 35000),
+                      const FlSpot(2, 32000),
+                      const FlSpot(3, 41000),
+                      const FlSpot(4, 38000),
+                      const FlSpot(5, 52000),
+                      FlSpot(6, todayRevenue > 0 ? todayRevenue : 45680),
                     ],
                     isCurved: true,
                     color: AppColors.admin,
@@ -491,42 +540,57 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  Widget _buildActivityList() {
+  Widget _buildActivityList(AdminDashboardData? data) {
+    final recentOrders = data?.recentOrders ?? [];
+
+    if (recentOrders.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Container(
+          padding: AppSpacing.card,
+          decoration: BoxDecoration(
+            color: AppColors.pure,
+            borderRadius: AppSpacing.borderRadiusMd,
+            boxShadow: AppShadows.sm,
+          ),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(
+                  Icons.receipt_long_outlined,
+                  size: 48,
+                  color: AppColors.mist,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'No recent orders',
+                  style: AppTypography.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, index) {
-          final activity = recentActivity[index];
+          final order = recentOrders[index];
           return Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: _buildActivityItem(activity),
+            child: _buildOrderItem(order),
           );
         },
-        childCount: recentActivity.length,
+        childCount: recentOrders.length,
       ),
     );
   }
 
-  Widget _buildActivityItem(Map<String, dynamic> activity) {
-    IconData icon;
-    Color color;
-
-    switch (activity["type"]) {
-      case "order":
-        icon = Icons.receipt_outlined;
-        color = AppColors.accent;
-        break;
-      case "exit":
-        icon = Icons.exit_to_app_rounded;
-        color = AppColors.security;
-        break;
-      case "alert":
-        icon = Icons.warning_amber_rounded;
-        color = AppColors.warning;
-        break;
-      default:
-        icon = Icons.info_outline;
-        color = AppColors.steel;
-    }
+  Widget _buildOrderItem(RecentOrder order) {
+    final color = order.status == 'paid' ? AppColors.accent : AppColors.warning;
+    final icon = order.status == 'paid'
+        ? Icons.receipt_outlined
+        : Icons.pending_outlined;
 
     return Container(
       padding: AppSpacing.cardSm,
@@ -554,30 +618,43 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  activity["description"],
+                  order.customerName,
                   style: AppTypography.titleSmall.copyWith(
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  activity["customer"] ??
-                      activity["location"] ??
-                      (activity["amount"] != null
-                          ? '\u20B9${activity["amount"]}'
-                          : ''),
+                  '\u20B9${order.totalAmount.toStringAsFixed(0)}',
                   style: AppTypography.bodySmall,
                 ),
               ],
             ),
           ),
           Text(
-            activity["time"],
+            _formatTimeAgo(order.createdAt),
             style: AppTypography.labelSmall,
           ),
         ],
       ),
     );
+  }
+
+  String _formatTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} min ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} hr ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else {
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    }
   }
 
   String _formatNumber(double number) {

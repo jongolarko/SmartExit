@@ -7,6 +7,8 @@ import 'core/core.dart';
 import 'providers/providers.dart';
 import 'screens/security/security_home_screen.dart';
 import 'screens/customer/customer_login_screen.dart';
+import 'screens/customer/product_scan_screen.dart';
+import 'screens/customer/cart_screen.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
 
 void main() {
@@ -95,6 +97,30 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.pure,
         elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: GestureDetector(
+            onTap: () async {
+              HapticFeedback.lightImpact();
+              await ref.read(authProvider.notifier).logout();
+            },
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.cloud,
+                borderRadius: AppSpacing.borderRadiusMd,
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 18,
+                  color: AppColors.voidBlack,
+                ),
+              ),
+            ),
+          ),
+        ),
         title: Text(
           'Welcome, ${authState.userName ?? "Customer"}',
           style: AppTypography.headlineSmall,
@@ -208,10 +234,6 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     );
   }
 }
-
-// Import screens that need to be navigated to
-import 'screens/customer/product_scan_screen.dart';
-import 'screens/customer/cart_screen.dart';
 
 /// Premium Role Selection Screen
 /// Full-screen, no app bar, with animated role cards
@@ -370,9 +392,12 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                               boxShadow: AppShadows.lg,
                             ),
                             padding: const EdgeInsets.all(20),
-                            child: Image.asset(
-                              'assets/logo/smartexit_logo.png',
-                              color: AppColors.pure,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.asset(
+                                'assets/logo/smartexit_logo.png',
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                           const SizedBox(height: AppSpacing.lg),

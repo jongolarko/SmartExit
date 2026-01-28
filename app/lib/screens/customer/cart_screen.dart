@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../core/core.dart';
 import '../../providers/providers.dart';
 import '../../services/api_service.dart';
+import '../../services/payment_service.dart';
+import '../../services/storage_service.dart';
 import 'exit_qr_screen.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
@@ -22,12 +25,24 @@ class _CartScreenState extends ConsumerState<CartScreen>
 
   late AnimationController _animController;
 
+  // Payment-related state
+  final PaymentService _paymentService = PaymentService.instance;
+  String? _pendingOrderId;
+  String? _pendingRazorpayOrderId;
+
   @override
   void initState() {
     super.initState();
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
+    );
+
+    // Initialize payment service with callbacks
+    _paymentService.initialize(
+      onSuccess: _handlePaymentSuccess,
+      onFailure: _handlePaymentFailure,
+      onExternalWallet: _handleExternalWallet,
     );
 
     // Fetch cart on init
@@ -40,6 +55,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
   @override
   void dispose() {
     _animController.dispose();
+    _paymentService.dispose();
     super.dispose();
   }
 
@@ -50,15 +66,56 @@ class _CartScreenState extends ConsumerState<CartScreen>
     setState(() => checkingOut = true);
     HapticFeedback.mediumImpact();
 
+    // Step 1: Create payment order on backend
     final payment = await ApiService.createPaymentOrder();
 
     if (payment['success'] == true && mounted) {
-      HapticFeedback.heavyImpact();
+      // Store order details for use in payment callbacks
+      _pendingOrderId = payment['order_id'];
+      _pendingRazorpayOrderId = payment['razorpay_order_id'];
+
+      // Get user details for prefilling checkout
+      final user = await StorageService.getUser();
+
+      // Step 2: Open Razorpay checkout UI
+      _paymentService.openCheckout(
+        razorpayKey: payment['key'] ?? '',
+        amountInPaise: ((payment['amount'] ?? 0) as num).toInt(),
+        razorpayOrderId: payment['razorpay_order_id'] ?? '',
+        businessName: 'SmartExit',
+        description: 'Store Purchase',
+        userPhone: user['phone'],
+        userName: user['name'],
+      );
+    } else {
+      setState(() => checkingOut = false);
+      _showError(payment['error'] ?? "Failed to create order. Please try again.");
+    }
+  }
+
+  /// Handle successful payment from Razorpay
+  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    if (!mounted) return;
+
+    HapticFeedback.heavyImpact();
+
+    // Step 3: Verify payment with backend
+    final verification = await ApiService.verifyPayment(
+      razorpayOrderId: response.orderId ?? _pendingRazorpayOrderId ?? '',
+      razorpayPaymentId: response.paymentId ?? '',
+      razorpaySignature: response.signature ?? '',
+      orderId: _pendingOrderId ?? '',
+    );
+
+    if (verification['success'] == true && mounted) {
+      final cartState = ref.read(cartProvider);
+
+      // Step 4: Navigate to Exit QR screen
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => ExitQRScreen(
-            orderId: payment['order_id'],
+            orderId: _pendingOrderId!,
             totalAmount: cartState.total,
           ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -81,8 +138,65 @@ class _CartScreenState extends ConsumerState<CartScreen>
       );
     } else {
       setState(() => checkingOut = false);
-      _showError(payment['error'] ?? "Payment failed. Please try again.");
+      _showError(verification['error'] ?? "Payment verification failed.");
     }
+
+    // Clear pending order data
+    _pendingOrderId = null;
+    _pendingRazorpayOrderId = null;
+  }
+
+  /// Handle payment failure from Razorpay
+  void _handlePaymentFailure(PaymentFailureResponse response) {
+    if (!mounted) return;
+
+    setState(() => checkingOut = false);
+    HapticFeedback.heavyImpact();
+
+    String errorMessage = "Payment failed";
+    if (response.message != null && response.message!.isNotEmpty) {
+      errorMessage = response.message!;
+    } else if (response.code != null) {
+      // Map common Razorpay error codes to user-friendly messages
+      switch (response.code) {
+        case Razorpay.NETWORK_ERROR:
+          errorMessage = "Network error. Please check your connection.";
+          break;
+        case Razorpay.INVALID_OPTIONS:
+          errorMessage = "Invalid payment configuration.";
+          break;
+        case Razorpay.PAYMENT_CANCELLED:
+          errorMessage = "Payment cancelled.";
+          break;
+        default:
+          errorMessage = "Payment failed. Please try again.";
+      }
+    }
+
+    _showError(errorMessage);
+
+    // Clear pending order data
+    _pendingOrderId = null;
+    _pendingRazorpayOrderId = null;
+  }
+
+  /// Handle external wallet selection (e.g., PayTM, PhonePe)
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    // External wallet selected - payment will continue in the wallet app
+    // The success/failure will be handled by the respective callbacks
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Redirecting to ${response.walletName}...'),
+        backgroundColor: AppColors.accent,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(AppSpacing.md),
+        shape: RoundedRectangleBorder(
+          borderRadius: AppSpacing.borderRadiusMd,
+        ),
+      ),
+    );
   }
 
   Future<void> _clearCart() async {
