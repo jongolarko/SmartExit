@@ -7,7 +7,9 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../core/core.dart';
 import '../../providers/providers.dart';
 import 'inventory_screen.dart';
+import 'orders_list_screen.dart';
 import 'product_list_screen.dart';
+import 'users_list_screen.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -575,7 +577,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
                 },
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: [
             Expanded(
               child: _buildQuickActionCard(
                 icon: Icons.receipt_long_outlined,
@@ -583,7 +589,29 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
                 color: AppColors.security,
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  // TODO: Navigate to orders list
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const OrdersListScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.people_outline_rounded,
+                label: 'Users',
+                color: AppColors.customer,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const UsersListScreen(),
+                    ),
+                  );
                 },
               ),
             ),

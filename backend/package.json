@@ -8,7 +8,12 @@
     "dev": "node --watch index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["retail", "payment", "razorpay", "exit-management"],
+  "keywords": [
+    "retail",
+    "payment",
+    "razorpay",
+    "exit-management"
+  ],
   "author": "SmartExit Team",
   "license": "ISC",
   "dependencies": {
@@ -18,16 +23,17 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
+    "firebase-admin": "^12.0.0",
     "helmet": "^8.1.0",
     "joi": "^18.0.2",
+    "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.16.3",
     "qrcode": "^1.5.4",
     "razorpay": "^2.9.6",
     "socket.io": "^4.8.3",
-    "uuid": "^13.0.0",
-    "winston": "^3.19.0",
     "twilio": "^5.0.0",
-    "firebase-admin": "^12.0.0"
+    "uuid": "^13.0.0",
+    "winston": "^3.19.0"
   }
 }

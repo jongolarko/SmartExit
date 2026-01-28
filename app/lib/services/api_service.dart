@@ -424,14 +424,126 @@ class ApiService {
     int page = 1,
     int limit = 20,
     String? role,
+    String? search,
   }) async {
     try {
       final headers = await _getAuthHeaders();
       var url = "$baseUrl/admin/users?page=$page&limit=$limit";
       if (role != null) url += "&role=$role";
+      if (search != null && search.isNotEmpty) url += "&search=$search";
 
       final response = await http.get(
         Uri.parse(url),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get order details (admin)
+  static Future<Map<String, dynamic>> getAdminOrderDetails({
+    required String orderId,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/orders/$orderId"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Refund order (admin)
+  static Future<Map<String, dynamic>> refundOrder({
+    required String orderId,
+    double? amount,
+    String? reason,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse("$baseUrl/admin/orders/$orderId/refund"),
+        headers: headers,
+        body: jsonEncode({
+          if (amount != null) "amount": amount,
+          if (reason != null) "reason": reason,
+        }),
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Cancel order (admin)
+  static Future<Map<String, dynamic>> cancelOrder({
+    required String orderId,
+    String? reason,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.put(
+        Uri.parse("$baseUrl/admin/orders/$orderId/cancel"),
+        headers: headers,
+        body: jsonEncode({
+          if (reason != null) "reason": reason,
+        }),
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get user details (admin)
+  static Future<Map<String, dynamic>> getUserDetails({
+    required String userId,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/users/$userId"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Update user role (admin)
+  static Future<Map<String, dynamic>> updateUserRole({
+    required String userId,
+    required String role,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.put(
+        Uri.parse("$baseUrl/admin/users/$userId/role"),
+        headers: headers,
+        body: jsonEncode({"role": role}),
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get user orders (admin)
+  static Future<Map<String, dynamic>> getUserOrders({
+    required String userId,
+    int page = 1,
+    int limit = 20,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/users/$userId/orders?page=$page&limit=$limit"),
         headers: headers,
       );
       return _handleResponse(response);
@@ -700,6 +812,244 @@ class ApiService {
       return _handleResponse(response);
     } catch (e) {
       return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /* =======================
+      ANALYTICS ENDPOINTS (Admin)
+  ======================= */
+
+  /// Get revenue chart data
+  static Future<Map<String, dynamic>> getRevenueChart({
+    String range = '7d',
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      var url = "$baseUrl/admin/analytics/revenue?range=$range";
+
+      if (startDate != null) {
+        url += "&startDate=${startDate.toIso8601String()}";
+      }
+      if (endDate != null) {
+        url += "&endDate=${endDate.toIso8601String()}";
+      }
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get KPI trends (today vs yesterday)
+  static Future<Map<String, dynamic>> getKpiTrends() async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/analytics/kpi-trends"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get sales summary (daily/weekly/monthly)
+  static Future<Map<String, dynamic>> getSalesSummary({
+    String period = 'daily',
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      var url = "$baseUrl/admin/analytics/sales/summary?period=$period";
+
+      if (startDate != null) {
+        url += "&startDate=${startDate.toIso8601String()}";
+      }
+      if (endDate != null) {
+        url += "&endDate=${endDate.toIso8601String()}";
+      }
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get peak hours analytics
+  static Future<Map<String, dynamic>> getPeakHours() async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/analytics/sales/peak-hours"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get refund rate statistics
+  static Future<Map<String, dynamic>> getRefundRate() async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/analytics/sales/refund-rate"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get top products
+  static Future<Map<String, dynamic>> getTopProducts({
+    String metric = 'revenue',
+    int limit = 10,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/analytics/products/top?metric=$metric&limit=$limit"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get slow moving products
+  static Future<Map<String, dynamic>> getSlowMovers() async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/analytics/products/slow-movers"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get stock turnover rate
+  static Future<Map<String, dynamic>> getStockTurnover() async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/analytics/products/turnover"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get customer acquisition data
+  static Future<Map<String, dynamic>> getCustomerAcquisition({
+    String range = '30d',
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/analytics/customers/acquisition?range=$range"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get repeat purchase rate
+  static Future<Map<String, dynamic>> getRepeatRate() async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/analytics/customers/repeat-rate"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get customer lifetime value
+  static Future<Map<String, dynamic>> getCustomerLifetimeValue() async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/analytics/customers/lifetime-value"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /// Get customer segmentation
+  static Future<Map<String, dynamic>> getCustomerSegmentation() async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/analytics/customers/segmentation"),
+        headers: headers,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {"success": false, "error": "Network error: $e"};
+    }
+  }
+
+  /* =======================
+      EXPORT ENDPOINTS (Admin)
+  ======================= */
+
+  /// Download CSV export
+  static Future<String> downloadCSV(
+    String endpoint,
+    Map<String, dynamic>? queryParams,
+  ) async {
+    try {
+      final headers = await _getAuthHeaders();
+      var url = "$baseUrl$endpoint";
+
+      if (queryParams != null && queryParams.isNotEmpty) {
+        final params = queryParams.entries
+            .map((e) => "${e.key}=${Uri.encodeComponent(e.value.toString())}")
+            .join("&");
+        url += "?$params";
+      }
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: headers,
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return response.body; // Return raw CSV string
+      } else {
+        throw Exception("Export failed: ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("Network error: $e");
     }
   }
 }

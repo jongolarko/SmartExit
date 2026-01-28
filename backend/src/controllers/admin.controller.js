@@ -1,6 +1,16 @@
 const pool = require("../config/db");
+const razorpay = require("../config/razorpay");
 const { success, error, paginated } = require("../utils/response");
 const inventoryService = require("../services/inventory.service");
+
+// Helper function to log admin activity
+async function logAdminActivity(adminId, action, entityType, entityId, details = null) {
+  await pool.query(
+    `INSERT INTO admin_activity_logs (admin_id, action, entity_type, entity_id, details)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [adminId, action, entityType, entityId, details ? JSON.stringify(details) : null]
+  );
+}
 
 // GET /admin/dashboard - Dashboard statistics
 async function getDashboard(req, res, next) {
@@ -524,6 +534,681 @@ async function getProductHistory(req, res, next) {
   }
 }
 
+// POST /admin/orders/:orderId/refund - Initiate Razorpay refund
+async function refundOrder(req, res, next) {
+  console.log('⚡ REFUND ENDPOINT HIT - Order ID:', req.params.orderId);
+  try {
+    const { orderId: id } = req.params;
+    const { amount, reason } = req.body;
+    const adminId = req.user.user_id;
+
+    // Get order details
+    const orderRes = await pool.query(
+      `SELECT id, razorpay_payment_id, total_amount, status, user_id
+       FROM orders WHERE id = $1`,
+      [id]
+    );
+
+    if (orderRes.rows.length === 0) {
+      return error(res, "Order not found", 404);
+    }
+
+    const order = orderRes.rows[0];
+
+    if (order.status !== "paid") {
+      return error(res, "Only paid orders can be refunded", 400);
+    }
+
+    if (!order.razorpay_payment_id) {
+      return error(res, "No payment ID found for this order", 400);
+    }
+
+    // Determine refund amount (full or partial)
+    const refundAmount = amount ? parseFloat(amount) : parseFloat(order.total_amount);
+
+    if (refundAmount <= 0 || refundAmount > parseFloat(order.total_amount)) {
+      return error(res, "Invalid refund amount", 400);
+    }
+
+    // Call Razorpay refund API
+    const refund = await razorpay.payments.refund(order.razorpay_payment_id, {
+      amount: Math.round(refundAmount * 100), // Convert to paise
+      notes: {
+        order_id: id,
+        reason: reason || "Admin initiated refund",
+      },
+    });
+
+    // Update order with refund details
+    await pool.query(
+      `UPDATE orders
+       SET status = 'refunded',
+           refund_id = $1,
+           refund_amount = $2,
+           refunded_at = NOW(),
+           refund_reason = $3,
+           updated_at = NOW()
+       WHERE id = $4`,
+      [refund.id, refundAmount, reason || null, id]
+    );
+
+    // Log admin activity
+    await logAdminActivity(adminId, "refund_order", "order", id, {
+      refund_id: refund.id,
+      amount: refundAmount,
+      reason: reason,
+    });
+
+    // Emit socket event for real-time notification
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`user:${order.user_id}`).emit("order:refunded", {
+        order_id: id,
+        refund_amount: refundAmount,
+      });
+    }
+
+    return success(res, {
+      message: "Refund processed successfully",
+      refund: {
+        id: refund.id,
+        amount: refundAmount,
+        status: refund.status,
+      },
+    });
+  } catch (err) {
+    if (err.error && err.error.description) {
+      return error(res, `Razorpay error: ${err.error.description}`, 400);
+    }
+    next(err);
+  }
+}
+
+// PUT /admin/orders/:orderId/cancel - Cancel unpaid order
+async function cancelOrder(req, res, next) {
+  try {
+    const { orderId: id } = req.params;
+    const { reason } = req.body;
+    const adminId = req.user.user_id;
+
+    // Get order details
+    const orderRes = await pool.query(
+      `SELECT id, status, user_id FROM orders WHERE id = $1`,
+      [id]
+    );
+
+    if (orderRes.rows.length === 0) {
+      return error(res, "Order not found", 404);
+    }
+
+    const order = orderRes.rows[0];
+
+    if (order.status !== "created") {
+      return error(res, "Only unpaid orders (status: created) can be cancelled", 400);
+    }
+
+    // Update order status
+    await pool.query(
+      `UPDATE orders SET status = 'cancelled', updated_at = NOW() WHERE id = $1`,
+      [id]
+    );
+
+    // Log admin activity
+    await logAdminActivity(adminId, "cancel_order", "order", id, {
+      reason: reason || null,
+    });
+
+    // Emit socket event
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`user:${order.user_id}`).emit("order:cancelled", {
+        order_id: id,
+        reason: reason,
+      });
+    }
+
+    return success(res, { message: "Order cancelled successfully" });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/users/:id - Get user details with order stats
+async function getUserDetails(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    // Get user details
+    const userRes = await pool.query(
+      `SELECT id, name, phone, role, created_at FROM users WHERE id = $1`,
+      [id]
+    );
+
+    if (userRes.rows.length === 0) {
+      return error(res, "User not found", 404);
+    }
+
+    // Get order statistics
+    const statsRes = await pool.query(
+      `SELECT
+         COUNT(*) as total_orders,
+         COALESCE(SUM(CASE WHEN status = 'paid' THEN total_amount ELSE 0 END), 0) as total_spent,
+         COALESCE(SUM(CASE WHEN status = 'refunded' THEN refund_amount ELSE 0 END), 0) as total_refunded
+       FROM orders WHERE user_id = $1`,
+      [id]
+    );
+
+    return success(res, {
+      user: userRes.rows[0],
+      stats: {
+        total_orders: parseInt(statsRes.rows[0].total_orders),
+        total_spent: parseFloat(statsRes.rows[0].total_spent),
+        total_refunded: parseFloat(statsRes.rows[0].total_refunded),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PUT /admin/users/:id/role - Update user role
+async function updateUserRole(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    const adminId = req.user.user_id;
+
+    // Validate role
+    const validRoles = ["customer", "security", "admin"];
+    if (!validRoles.includes(role)) {
+      return error(res, `Invalid role. Must be one of: ${validRoles.join(", ")}`, 400);
+    }
+
+    // Check if user exists and get current role
+    const userRes = await pool.query(
+      `SELECT id, name, role FROM users WHERE id = $1`,
+      [id]
+    );
+
+    if (userRes.rows.length === 0) {
+      return error(res, "User not found", 404);
+    }
+
+    const oldRole = userRes.rows[0].role;
+
+    // Prevent admin from demoting themselves
+    if (id === adminId && role !== "admin") {
+      return error(res, "Cannot change your own role", 400);
+    }
+
+    // Update user role
+    await pool.query(
+      `UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2`,
+      [role, id]
+    );
+
+    // Invalidate user's refresh tokens (force re-login)
+    await pool.query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [id]);
+
+    // Log admin activity
+    await logAdminActivity(adminId, "update_role", "user", id, {
+      old_role: oldRole,
+      new_role: role,
+    });
+
+    return success(res, {
+      message: "User role updated successfully",
+      user: {
+        id,
+        name: userRes.rows[0].name,
+        role,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/users/:id/orders - Get user's order history
+async function getUserOrders(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    // Check if user exists
+    const userRes = await pool.query(`SELECT id FROM users WHERE id = $1`, [id]);
+
+    if (userRes.rows.length === 0) {
+      return error(res, "User not found", 404);
+    }
+
+    // Get orders
+    const ordersRes = await pool.query(
+      `SELECT id, total_amount, status, created_at, paid_at,
+              razorpay_order_id, razorpay_payment_id,
+              refund_id, refund_amount, refunded_at
+       FROM orders
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [id, limit, offset]
+    );
+
+    // Get total count
+    const countRes = await pool.query(
+      `SELECT COUNT(*) FROM orders WHERE user_id = $1`,
+      [id]
+    );
+
+    return paginated(
+      res,
+      ordersRes.rows,
+      parseInt(page),
+      parseInt(limit),
+      parseInt(countRes.rows[0].count)
+    );
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ==================== ANALYTICS ENDPOINTS ====================
+
+// GET /admin/analytics/revenue - Revenue chart data with date range
+async function getRevenueChart(req, res, next) {
+  try {
+    const { range = '7d', startDate, endDate } = req.query;
+
+    let start, end, previousStart, previousEnd;
+    const now = new Date();
+
+    if (startDate && endDate) {
+      start = new Date(startDate);
+      end = new Date(endDate);
+      const diff = end - start;
+      previousStart = new Date(start - diff);
+      previousEnd = start;
+    } else {
+      const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
+      end = now;
+      start = new Date(now - days * 24 * 60 * 60 * 1000);
+      previousEnd = start;
+      previousStart = new Date(start - days * 24 * 60 * 60 * 1000);
+    }
+
+    // Current period data
+    const currentData = await pool.query(
+      `SELECT DATE(paid_at) as date, COUNT(*) as orders, SUM(total_amount) as revenue
+       FROM orders
+       WHERE status = 'paid' AND paid_at >= $1 AND paid_at < $2
+       GROUP BY DATE(paid_at)
+       ORDER BY date`,
+      [start, end]
+    );
+
+    // Previous period for comparison
+    const previousData = await pool.query(
+      `SELECT SUM(total_amount) as total FROM orders
+       WHERE status = 'paid' AND paid_at >= $1 AND paid_at < $2`,
+      [previousStart, previousEnd]
+    );
+
+    const currentTotal = currentData.rows.reduce((sum, row) => sum + parseFloat(row.revenue), 0);
+    const previousTotal = parseFloat(previousData.rows[0]?.total || 0);
+    const percentChange = previousTotal > 0
+      ? ((currentTotal - previousTotal) / previousTotal * 100).toFixed(1)
+      : 0;
+
+    return success(res, {
+      data: currentData.rows,
+      comparison: {
+        current: currentTotal,
+        previous: previousTotal,
+        percentChange: parseFloat(percentChange)
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/analytics/kpi-trends - Today vs Yesterday KPIs
+async function getKpiTrends(req, res, next) {
+  try {
+    const today = new Date();
+    const todayStart = new Date(today.setHours(0, 0, 0, 0));
+    const yesterdayStart = new Date(todayStart - 24 * 60 * 60 * 1000);
+
+    // Today's KPIs
+    const todayKpis = await pool.query(
+      `SELECT
+        COUNT(*) as orders,
+        COALESCE(SUM(total_amount), 0) as revenue,
+        (SELECT COUNT(*) FROM users WHERE created_at >= $1) as new_users
+       FROM orders
+       WHERE status = 'paid' AND paid_at >= $1`,
+      [todayStart]
+    );
+
+    // Yesterday's KPIs
+    const yesterdayKpis = await pool.query(
+      `SELECT
+        COUNT(*) as orders,
+        COALESCE(SUM(total_amount), 0) as revenue,
+        (SELECT COUNT(*) FROM users WHERE created_at >= $1 AND created_at < $2) as new_users
+       FROM orders
+       WHERE status = 'paid' AND paid_at >= $1 AND paid_at < $2`,
+      [yesterdayStart, todayStart]
+    );
+
+    const today_data = todayKpis.rows[0];
+    const yesterday_data = yesterdayKpis.rows[0];
+
+    const calculate_change = (current, previous) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous * 100).toFixed(1);
+    };
+
+    return success(res, {
+      revenue: {
+        current: parseFloat(today_data.revenue),
+        previous: parseFloat(yesterday_data.revenue),
+        change: parseFloat(calculate_change(today_data.revenue, yesterday_data.revenue))
+      },
+      orders: {
+        current: parseInt(today_data.orders),
+        previous: parseInt(yesterday_data.orders),
+        change: parseFloat(calculate_change(today_data.orders, yesterday_data.orders))
+      },
+      users: {
+        current: parseInt(today_data.new_users),
+        previous: parseInt(yesterday_data.new_users),
+        change: parseFloat(calculate_change(today_data.new_users, yesterday_data.new_users))
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/analytics/sales/summary - Daily/Weekly/Monthly aggregation
+async function getSalesSummary(req, res, next) {
+  try {
+    const { period = 'daily', startDate, endDate } = req.query;
+
+    const groupBy = {
+      'daily': 'DATE(paid_at)',
+      'weekly': 'DATE_TRUNC(\'week\', paid_at)',
+      'monthly': 'DATE_TRUNC(\'month\', paid_at)'
+    }[period];
+
+    const data = await pool.query(
+      `SELECT
+        ${groupBy} as period,
+        COUNT(*) as order_count,
+        SUM(total_amount) as revenue,
+        AVG(total_amount) as avg_order_value
+       FROM orders
+       WHERE status = 'paid'
+         AND paid_at >= $1
+         AND paid_at < $2
+       GROUP BY ${groupBy}
+       ORDER BY period DESC`,
+      [startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), endDate || new Date()]
+    );
+
+    return success(res, { data: data.rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/analytics/sales/peak-hours - Hourly breakdown
+async function getPeakHours(req, res, next) {
+  try {
+    const data = await pool.query(
+      `SELECT
+        EXTRACT(HOUR FROM paid_at) as hour,
+        COUNT(*) as order_count,
+        SUM(total_amount) as revenue
+       FROM orders
+       WHERE status = 'paid'
+         AND paid_at >= NOW() - INTERVAL '30 days'
+       GROUP BY EXTRACT(HOUR FROM paid_at)
+       ORDER BY hour`
+    );
+
+    return success(res, { data: data.rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/analytics/sales/refund-rate - Refund statistics
+async function getRefundRate(req, res, next) {
+  try {
+    const stats = await pool.query(
+      `SELECT
+        COUNT(CASE WHEN status = 'paid' THEN 1 END) as paid_orders,
+        COUNT(CASE WHEN status = 'refunded' THEN 1 END) as refunded_orders,
+        SUM(CASE WHEN status = 'refunded' THEN refund_amount ELSE 0 END) as total_refunded
+       FROM orders
+       WHERE paid_at >= NOW() - INTERVAL '30 days'`
+    );
+
+    const data = stats.rows[0];
+    const refundRate = data.paid_orders > 0
+      ? (data.refunded_orders / data.paid_orders * 100).toFixed(2)
+      : 0;
+
+    return success(res, {
+      paidOrders: parseInt(data.paid_orders),
+      refundedOrders: parseInt(data.refunded_orders),
+      totalRefunded: parseFloat(data.total_refunded),
+      refundRate: parseFloat(refundRate)
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/analytics/products/top - Top 10 by revenue or quantity
+async function getTopProducts(req, res, next) {
+  try {
+    const { metric = 'revenue', limit = 10 } = req.query;
+
+    const orderBy = metric === 'revenue'
+      ? 'SUM(oi.price * oi.quantity)'
+      : 'SUM(oi.quantity)';
+
+    const data = await pool.query(
+      `SELECT
+        p.id, p.name, p.barcode,
+        COUNT(DISTINCT o.id) as order_count,
+        SUM(oi.quantity) as units_sold,
+        SUM(oi.price * oi.quantity) as revenue
+       FROM products p
+       JOIN order_items oi ON p.id = oi.product_id
+       JOIN orders o ON oi.order_id = o.id
+       WHERE o.status = 'paid'
+         AND o.paid_at >= NOW() - INTERVAL '30 days'
+       GROUP BY p.id, p.name, p.barcode
+       ORDER BY ${orderBy} DESC
+       LIMIT $1`,
+      [limit]
+    );
+
+    return success(res, { data: data.rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/analytics/products/slow-movers - Products with low sales
+async function getSlowMovers(req, res, next) {
+  try {
+    const data = await pool.query(
+      `SELECT
+        p.id, p.name, p.barcode, p.stock,
+        COALESCE(SUM(oi.quantity), 0) as units_sold,
+        EXTRACT(DAYS FROM NOW() - MAX(o.paid_at)) as days_since_last_sale
+       FROM products p
+       LEFT JOIN order_items oi ON p.id = oi.product_id
+       LEFT JOIN orders o ON oi.order_id = o.id AND o.status = 'paid'
+       WHERE p.stock > 0
+       GROUP BY p.id, p.name, p.barcode, p.stock
+       HAVING COALESCE(SUM(oi.quantity), 0) < 5
+       ORDER BY days_since_last_sale DESC
+       LIMIT 20`
+    );
+
+    return success(res, { data: data.rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/analytics/products/turnover - Stock turnover rate
+async function getStockTurnover(req, res, next) {
+  try {
+    const data = await pool.query(
+      `SELECT
+        p.id,
+        p.name,
+        p.stock as current_stock,
+        COALESCE(SUM(oi.quantity), 0) as total_sold,
+        CASE
+          WHEN p.stock > 0 THEN (COALESCE(SUM(oi.quantity), 0)::float / p.stock)
+          ELSE 0
+        END as turnover_rate
+       FROM products p
+       LEFT JOIN order_items oi ON p.id = oi.product_id
+       LEFT JOIN orders o ON oi.order_id = o.id
+         AND o.status = 'paid'
+         AND o.paid_at >= NOW() - INTERVAL '30 days'
+       WHERE p.stock IS NOT NULL
+       GROUP BY p.id, p.name, p.stock
+       ORDER BY turnover_rate DESC
+       LIMIT 20`
+    );
+
+    return success(res, { data: data.rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/analytics/customers/acquisition - New customers over time
+async function getCustomerAcquisition(req, res, next) {
+  try {
+    const { range = '30d' } = req.query;
+    const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
+
+    const data = await pool.query(
+      `SELECT
+        DATE(created_at) as date,
+        COUNT(*) as new_customers
+       FROM users
+       WHERE role = 'customer'
+         AND created_at >= NOW() - INTERVAL '${days} days'
+       GROUP BY DATE(created_at)
+       ORDER BY date`
+    );
+
+    return success(res, { data: data.rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/analytics/customers/repeat-rate - Repeat purchase percentage
+async function getRepeatRate(req, res, next) {
+  try {
+    const stats = await pool.query(
+      `WITH customer_order_counts AS (
+        SELECT user_id, COUNT(*) as order_count
+        FROM orders
+        WHERE status = 'paid'
+        GROUP BY user_id
+      )
+      SELECT
+        COUNT(*) as total_customers,
+        COUNT(CASE WHEN order_count > 1 THEN 1 END) as repeat_customers
+      FROM customer_order_counts`
+    );
+
+    const data = stats.rows[0];
+    const repeatRate = data.total_customers > 0
+      ? (data.repeat_customers / data.total_customers * 100).toFixed(2)
+      : 0;
+
+    return success(res, {
+      totalCustomers: parseInt(data.total_customers),
+      repeatCustomers: parseInt(data.repeat_customers),
+      repeatRate: parseFloat(repeatRate)
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/analytics/customers/lifetime-value - CLV ranking
+async function getCustomerLifetimeValue(req, res, next) {
+  try {
+    const data = await pool.query(
+      `SELECT
+        u.id, u.phone as phone_number,
+        COUNT(o.id) as order_count,
+        SUM(o.total_amount) as lifetime_value,
+        MAX(o.paid_at) as last_purchase
+       FROM users u
+       JOIN orders o ON u.id = o.user_id
+       WHERE o.status = 'paid' AND u.role = 'customer'
+       GROUP BY u.id, u.phone
+       ORDER BY lifetime_value DESC
+       LIMIT 50`
+    );
+
+    return success(res, { data: data.rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /admin/analytics/customers/segmentation - Customer segments
+async function getCustomerSegmentation(req, res, next) {
+  try {
+    const data = await pool.query(
+      `WITH customer_stats AS (
+        SELECT
+          user_id,
+          COUNT(*) as order_count,
+          SUM(total_amount) as total_spent
+        FROM orders
+        WHERE status = 'paid'
+        GROUP BY user_id
+      )
+      SELECT
+        CASE
+          WHEN order_count >= 10 THEN 'VIP'
+          WHEN order_count >= 5 THEN 'Loyal'
+          WHEN order_count >= 2 THEN 'Regular'
+          ELSE 'New'
+        END as segment,
+        COUNT(*) as customer_count,
+        AVG(total_spent) as avg_spent
+      FROM customer_stats
+      GROUP BY segment
+      ORDER BY avg_spent DESC`
+    );
+
+    return success(res, { data: data.rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getDashboard,
   getOrders,
@@ -538,4 +1223,22 @@ module.exports = {
   getLowStockProducts,
   getInventoryReport,
   getProductHistory,
+  refundOrder,
+  cancelOrder,
+  getUserDetails,
+  updateUserRole,
+  getUserOrders,
+  // Analytics
+  getRevenueChart,
+  getKpiTrends,
+  getSalesSummary,
+  getPeakHours,
+  getRefundRate,
+  getTopProducts,
+  getSlowMovers,
+  getStockTurnover,
+  getCustomerAcquisition,
+  getRepeatRate,
+  getCustomerLifetimeValue,
+  getCustomerSegmentation,
 };
