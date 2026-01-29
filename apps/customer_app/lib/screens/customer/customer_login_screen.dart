@@ -1,12 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:smartexit_core/smartexit_core.dart';
 import 'package:smartexit_shared/smartexit_shared.dart';
-import '../../config/customer_theme.dart';
+import '../../config/premium_theme.dart';
 
 class CustomerLoginScreen extends ConsumerStatefulWidget {
   final String? roleHint; // 'customer', 'security', 'admin'
@@ -31,17 +29,6 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-
-  // Background image rotation
-  Timer? _backgroundTimer;
-  int _currentBackgroundIndex = 0;
-  final List<String> _backgroundImages = [
-    'assets/images/login_bg_1.jpg',
-    'assets/images/login_bg_2.jpg',
-    'assets/images/login_bg_3.jpg',
-    'assets/images/login_bg_4.jpg',
-    'assets/images/login_bg_5.jpg',
-  ];
 
   @override
   void initState() {
@@ -69,20 +56,10 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
     );
 
     _animController.forward();
-
-    // Start background rotation timer (change every 5 seconds)
-    _backgroundTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (mounted) {
-        setState(() {
-          _currentBackgroundIndex = (_currentBackgroundIndex + 1) % _backgroundImages.length;
-        });
-      }
-    });
   }
 
   @override
   void dispose() {
-    _backgroundTimer?.cancel();
     _animController.dispose();
     phoneCtrl.dispose();
     nameCtrl.dispose();
@@ -120,6 +97,8 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
       success = await auth.sendOtp(phoneCtrl.text.trim());
     }
 
+    if (!mounted) return;
+
     if (success) {
       _otpFocus.requestFocus();
       _showSuccess("OTP sent to your phone");
@@ -139,6 +118,8 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
     final expectedRole = widget.roleHint ?? 'customer';
     final success = await auth.verifyOtp(otpCtrl.text.trim(), expectedRole: expectedRole);
 
+    if (!mounted) return;
+
     if (success) {
       HapticFeedback.mediumImpact();
       // Navigate back to root - AuthWrapper will handle the rest
@@ -147,6 +128,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
   }
 
   void _showError(String message) {
+    if (!mounted) return;
     HapticFeedback.heavyImpact();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -157,7 +139,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             Expanded(child: Text(message, style: const TextStyle(color: Colors.white))),
           ],
         ),
-        backgroundColor: CustomerTheme.energeticOrange,
+        backgroundColor: PremiumColors.warning,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
         shape: RoundedRectangleBorder(
@@ -168,6 +150,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
   }
 
   void _showSuccess(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -177,7 +160,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             Expanded(child: Text(message, style: const TextStyle(color: Colors.white))),
           ],
         ),
-        backgroundColor: CustomerTheme.accentGreen,
+        backgroundColor: PremiumColors.accent,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
         shape: RoundedRectangleBorder(
@@ -270,45 +253,20 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
   Widget _buildBackground() {
     return Stack(
       children: [
-        // Fallback gradient (shown if images fail to load)
+        // Base gradient background
         Positioned.fill(
           child: Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  CustomerTheme.primaryBlue,
-                  CustomerTheme.primaryBlue.withOpacity(0.8),
-                  CustomerTheme.accentGreen.withOpacity(0.3),
+                  PremiumColors.primary,
+                  Color(0xFF6B2ECE), // Blend between primary and accent
+                  Color(0xFFFF6B9D), // PremiumColors.accent
                 ],
-                stops: const [0.0, 0.5, 1.0],
+                stops: [0.0, 0.5, 1.0],
               ),
-            ),
-          ),
-        ),
-
-        // Rotating background images with smooth transitions
-        Positioned.fill(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 2000),
-            transitionBuilder: (Widget child, Animation<double> animation) {
-              return FadeTransition(
-                opacity: CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeInOut,
-                ),
-                child: child,
-              );
-            },
-            child: Image.asset(
-              _backgroundImages[_currentBackgroundIndex],
-              key: ValueKey<int>(_currentBackgroundIndex),
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                // If image fails to load, show nothing (gradient will show)
-                return const SizedBox.shrink();
-              },
             ),
           ),
         ),
@@ -321,9 +279,9 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  CustomerTheme.primaryBlue.withOpacity(0.85),
-                  CustomerTheme.primaryBlue.withOpacity(0.6),
-                  CustomerTheme.primaryBlue.withOpacity(0.3),
+                  PremiumColors.primary.withOpacity(0.85),
+                  PremiumColors.primary.withOpacity(0.6),
+                  PremiumColors.primary.withOpacity(0.3),
                   Colors.transparent,
                 ],
                 stops: const [0.0, 0.3, 0.6, 1.0],
@@ -350,15 +308,15 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: CustomerTheme.surface.withOpacity(0.95),
+          color: PremiumColors.surface.withOpacity(0.95),
           borderRadius: BorderRadius.circular(12),
-          boxShadow: CustomerTheme.cardShadow,
+          boxShadow: PremiumShadows.sm,
         ),
         child: const Center(
           child: Icon(
             Icons.arrow_back_ios_new_rounded,
             size: 18,
-            color: CustomerTheme.textPrimary,
+            color: PremiumColors.textPrimary,
           ),
         ),
       ),
@@ -387,9 +345,9 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
         Container(
           width: 72,
           height: 72,
-          decoration: CustomerTheme.gradientDecoration(
+          decoration: PremiumTheme.gradientDecoration(
             radius: 20,
-            shadows: CustomerTheme.buttonShadow,
+            shadows: PremiumShadows.glow,
           ),
           padding: const EdgeInsets.all(16),
           child: Image.asset(
@@ -400,25 +358,27 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
 
         const SizedBox(height: 32),
 
-        // Title with Poppins
+        // Title with Plus Jakarta Sans
         Text(
           title,
-          style: GoogleFonts.poppins(
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
             fontSize: 32,
             fontWeight: FontWeight.w700,
-            color: CustomerTheme.textPrimary,
+            color: PremiumColors.textPrimary,
             height: 1.1,
           ),
         ),
 
         const SizedBox(height: 8),
 
-        // Subtitle with Inter
+        // Subtitle with Plus Jakarta Sans
         Text(
           subtitle,
-          style: GoogleFonts.inter(
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
             fontSize: 16,
-            color: CustomerTheme.textSecondary,
+            color: PremiumColors.textSecondary,
             height: 1.5,
           ),
         ),
@@ -433,10 +393,11 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
         if (isNewUser) ...[
           Text(
             'Full Name',
-            style: GoogleFonts.inter(
+            style: const TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: CustomerTheme.textSecondary,
+              color: PremiumColors.textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -451,10 +412,11 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
         ],
         Text(
           'Phone Number',
-          style: GoogleFonts.inter(
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: CustomerTheme.textSecondary,
+            color: PremiumColors.textSecondary,
           ),
         ),
         const SizedBox(height: AppSpacing.xs),
@@ -479,9 +441,10 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
           },
           child: Text(
             isNewUser ? 'Already have an account? Login' : "Don't have an account? Register",
-            style: GoogleFonts.inter(
+            style: const TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
               fontSize: 14,
-              color: CustomerTheme.primaryBlue,
+              color: PremiumColors.primary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -496,10 +459,11 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
       children: [
         Text(
           'Verification Code',
-          style: GoogleFonts.inter(
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: CustomerTheme.textSecondary,
+            color: PremiumColors.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
@@ -518,9 +482,10 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
           onTap: _sendOtp,
           child: Text(
             "Didn't receive OTP? Resend",
-            style: GoogleFonts.inter(
+            style: const TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
               fontSize: 14,
-              color: CustomerTheme.primaryBlue,
+              color: PremiumColors.primary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -544,9 +509,10 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
         children: [
           Text(
             'By continuing, you agree to our',
-            style: GoogleFonts.inter(
+            style: const TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
               fontSize: 12,
-              color: CustomerTheme.textSecondary,
+              color: PremiumColors.textSecondary,
             ),
           ),
           const SizedBox(height: 4),
@@ -557,27 +523,30 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
                 onTap: () {},
                 child: Text(
                   'Terms of Service',
-                  style: GoogleFonts.inter(
+                  style: const TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
                     fontSize: 12,
-                    color: CustomerTheme.primaryBlue,
+                    color: PremiumColors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               Text(
                 ' and ',
-                style: GoogleFonts.inter(
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
                   fontSize: 12,
-                  color: CustomerTheme.textSecondary,
+                  color: PremiumColors.textSecondary,
                 ),
               ),
               GestureDetector(
                 onTap: () {},
                 child: Text(
                   'Privacy Policy',
-                  style: GoogleFonts.inter(
+                  style: const TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
                     fontSize: 12,
-                    color: CustomerTheme.primaryBlue,
+                    color: PremiumColors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
