@@ -2,42 +2,42 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 /// Premium Theme for SmartExit Customer App
-/// Design System: Pure White + Shiny Black + Luxury Minimalist
+/// Design System: Emerald Green + Pure White + Fresh Modern
 /// Typography: Plus Jakarta Sans (bundled for performance)
 class PremiumColors {
   PremiumColors._();
 
   // ============================================
-  // PRIMARY COLORS - Pure White
+  // PRIMARY COLORS - Emerald Green
   // ============================================
-  static const Color primary = Color(0xFFFFFFFF);           // Pure white background
-  static const Color primaryDark = Color(0xFFFAFAFA);       // Off-white
-  static const Color primaryLight = Color(0xFFFFFFFF);      // Pure white
-  static const Color primaryUltraLight = Color(0xFFFFFFFF); // Pure white
+  static const Color primary = Color(0xFF059669);           // Emerald green
+  static const Color primaryDark = Color(0xFF047857);       // Deep emerald
+  static const Color primaryLight = Color(0xFF10B981);      // Light emerald
+  static const Color primaryUltraLight = Color(0xFFD1FAE5); // Mint tint
 
   // ============================================
-  // ACCENT COLORS - Shiny Black
+  // ACCENT COLORS - Fresh Green Variants
   // ============================================
-  static const Color accent = Color(0xFF000000);       // Pure black (shiny)
-  static const Color accentDark = Color(0xFF0A0A0A);   // Deep black
-  static const Color accentLight = Color(0xFF2A2A2A);  // Light shiny black
-  static const Color accentGold = Color(0xFFC0C0C0);   // Silver accent
+  static const Color accent = Color(0xFF10B981);       // Light emerald
+  static const Color accentDark = Color(0xFF059669);   // Emerald
+  static const Color accentLight = Color(0xFF34D399);  // Bright green
+  static const Color accentGold = Color(0xFF6EE7B7);   // Mint green
 
   // ============================================
   // NEUTRAL PALETTE
   // ============================================
   static const Color background = Color(0xFFFFFFFF);      // Pure white
-  static const Color surface = Color(0xFFFFFFFF);         // Pure white
-  static const Color darkBackground = Color(0xFF000000);  // Pure black
-  static const Color cardBackground = Color(0xFFFFFFFF);  // Pure white
+  static const Color surface = Color(0xFFFAFAFA);         // Off-white
+  static const Color darkBackground = Color(0xFF064E3B);  // Dark green
+  static const Color cardBackground = Color(0xFFF0FFF4);  // Mint white
 
   // ============================================
   // TEXT COLORS
   // ============================================
-  static const Color textPrimary = Color(0xFF000000);   // Pure black
-  static const Color textSecondary = Color(0xFF1A1A1A); // Shiny black
-  static const Color textTertiary = Color(0xFF4A4A4A);  // Dark gray
-  static const Color onDark = Color(0xFFFFFFFF);        // Pure white on dark
+  static const Color textPrimary = Color(0xFF1F2937);   // Dark gray
+  static const Color textSecondary = Color(0xFF6B7280); // Medium gray
+  static const Color textTertiary = Color(0xFF9CA3AF);  // Light gray
+  static const Color onDark = Color(0xFFFFFFFF);        // White on dark green
 
   // ============================================
   // STATUS COLORS
@@ -47,28 +47,28 @@ class PremiumColors {
   static const Color error = Color(0xFFEF4444);    // Red
 
   // ============================================
-  // GRADIENTS - Shiny Black
+  // GRADIENTS - Emerald Green
   // ============================================
   static const LinearGradient heroGradient = LinearGradient(
-    colors: [Color(0xFF2A2A2A), Color(0xFF000000)], // Shiny black gradient
+    colors: [Color(0xFF059669), Color(0xFF10B981)], // Emerald gradient
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient subtleGradient = LinearGradient(
-    colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
+    colors: [Color(0xFFFFFFFF), Color(0xFFF0FFF4)], // White to mint
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF2A2A2A), Color(0xFF000000)], // Shiny black
+    colors: [Color(0xFF059669), Color(0xFF047857)], // Deep emerald
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient shinyBlackGradient = LinearGradient(
-    colors: [Color(0xFF2A2A2A), Color(0xFF0A0A0A)], // Premium shiny black
+  static const LinearGradient lightGradient = LinearGradient(
+    colors: [Color(0xFF10B981), Color(0xFF34D399)], // Light green
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -162,38 +162,33 @@ class PremiumShadows {
     ),
   ];
 
-  // Glow effect for shiny black elements
+  // Glow effect for emerald green elements
   static List<BoxShadow> glow = [
     BoxShadow(
-      color: const Color(0xFF000000).withOpacity(0.3),
+      color: const Color(0xFF059669).withOpacity(0.4),
       blurRadius: 24,
       offset: const Offset(0, 8),
     ),
     BoxShadow(
-      color: const Color(0xFFFFFFFF).withOpacity(0.1),
-      blurRadius: 8,
-      offset: const Offset(-2, -2),
+      color: const Color(0xFF10B981).withOpacity(0.2),
+      blurRadius: 12,
+      offset: const Offset(0, 4),
     ),
   ];
 
-  // Premium shiny black glow
-  static List<BoxShadow> shinyBlackGlow = [
+  // Light green glow
+  static List<BoxShadow> lightGlow = [
     BoxShadow(
-      color: const Color(0xFF000000).withOpacity(0.4),
-      blurRadius: 24,
-      offset: const Offset(0, 8),
-    ),
-    BoxShadow(
-      color: const Color(0xFFFFFFFF).withOpacity(0.1),
-      blurRadius: 8,
-      offset: const Offset(-2, -2),
+      color: const Color(0xFF10B981).withOpacity(0.3),
+      blurRadius: 20,
+      offset: const Offset(0, 6),
     ),
   ];
 
-  // Accent glow for shiny black elements
+  // Accent glow for green elements
   static List<BoxShadow> accentGlow = [
     BoxShadow(
-      color: const Color(0xFF000000).withOpacity(0.3),
+      color: const Color(0xFF059669).withOpacity(0.3),
       blurRadius: 20,
       offset: const Offset(0, 6),
     ),

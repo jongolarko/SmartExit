@@ -252,17 +252,17 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
 
   Widget _buildBackground() {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFFFFFFFF), // Pure white
-            const Color(0xFFFAFAFA), // Subtle gray
-            const Color(0xFFFFFFFF), // Pure white
-            const Color(0xFFF5F5F5), // Light shimmer
+            Color(0xFFFFFFFF), // Pure white
+            Color(0xFFF0FFF4), // Mint tint
+            Color(0xFFFFFFFF), // Pure white
+            Color(0xFFD1FAE5), // Light mint
           ],
-          stops: const [0.0, 0.3, 0.6, 1.0],
+          stops: [0.0, 0.3, 0.6, 1.0],
         ),
       ),
     );
@@ -316,7 +316,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Logo with ultra shiny black
+        // Logo with emerald green gradient
         Container(
           width: 72,
           height: 72,
@@ -325,40 +325,34 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF4A4A4A), // Lighter black for shine
-                Color(0xFF1A1A1A), // Mid black
-                Color(0xFF000000), // Pure black
-                Color(0xFF0A0A0A), // Deep black
+                Color(0xFF10B981), // Light emerald
+                Color(0xFF059669), // Emerald green
+                Color(0xFF047857), // Deep emerald
               ],
-              stops: [0.0, 0.3, 0.7, 1.0],
+              stops: [0.0, 0.5, 1.0],
             ),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
-              // Main shadow
+              // Emerald glow
               BoxShadow(
-                color: const Color(0xFF000000).withOpacity(0.5),
-                blurRadius: 32,
-                offset: const Offset(0, 12),
+                color: const Color(0xFF059669).withOpacity(0.4),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
                 spreadRadius: 2,
               ),
-              // White shine on top
+              // Light green shimmer
               BoxShadow(
-                color: const Color(0xFFFFFFFF).withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(-3, -3),
-                spreadRadius: 1,
+                color: const Color(0xFF10B981).withOpacity(0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
-              // Glow effect
+              // Soft outer glow
               BoxShadow(
-                color: const Color(0xFF000000).withOpacity(0.2),
-                blurRadius: 48,
-                offset: const Offset(0, 20),
+                color: const Color(0xFF059669).withOpacity(0.2),
+                blurRadius: 32,
+                offset: const Offset(0, 12),
               ),
             ],
-            border: Border.all(
-              color: const Color(0xFFFFFFFF).withOpacity(0.2),
-              width: 1,
-            ),
           ),
           padding: const EdgeInsets.all(16),
           child: Image.asset(
@@ -370,13 +364,13 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
 
         const SizedBox(height: 32),
 
-        // Title with Plus Jakarta Sans - Ultra Shiny Black
+        // Title with emerald gradient
         ShaderMask(
           shaderCallback: (bounds) => const LinearGradient(
             colors: [
-              Color(0xFF000000), // Pure black
-              Color(0xFF2A2A2A), // Light black
-              Color(0xFF000000), // Pure black
+              Color(0xFF047857), // Deep emerald
+              Color(0xFF059669), // Emerald
+              Color(0xFF10B981), // Light emerald
             ],
             stops: [0.0, 0.5, 1.0],
           ).createShader(bounds),
@@ -385,19 +379,14 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             style: TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 32,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               color: Colors.white,
               height: 1.1,
               shadows: [
                 Shadow(
-                  color: const Color(0xFF000000).withOpacity(0.4),
+                  color: const Color(0xFF059669).withOpacity(0.3),
                   offset: const Offset(2, 2),
                   blurRadius: 8,
-                ),
-                Shadow(
-                  color: const Color(0xFFFFFFFF).withOpacity(0.3),
-                  offset: const Offset(-1, -1),
-                  blurRadius: 2,
                 ),
               ],
             ),
@@ -406,36 +395,15 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
 
         const SizedBox(height: 8),
 
-        // Subtitle with Plus Jakarta Sans - Glossy Black
-        ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [
-              Color(0xFF1A1A1A),
-              Color(0xFF4A4A4A),
-              Color(0xFF1A1A1A),
-            ],
-          ).createShader(bounds),
-          child: Text(
-            subtitle,
-            style: TextStyle(
-              fontFamily: 'Plus Jakarta Sans',
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-              height: 1.5,
-              shadows: [
-                Shadow(
-                  color: const Color(0xFF000000).withOpacity(0.2),
-                  offset: const Offset(1, 1),
-                  blurRadius: 3,
-                ),
-                Shadow(
-                  color: const Color(0xFFFFFFFF).withOpacity(0.2),
-                  offset: const Offset(-0.5, -0.5),
-                  blurRadius: 1,
-                ),
-              ],
-            ),
+        // Subtitle
+        Text(
+          subtitle,
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF6B7280), // Medium gray
+            height: 1.5,
           ),
         ),
       ],
@@ -453,44 +421,30 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF000000), // Pure black
+              color: Color(0xFF1F2937), // Dark gray
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white,
-                  const Color(0xFFFAFAFA),
-                  Colors.white,
-                ],
-              ),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                width: 2.5,
-                color: Colors.transparent,
+                color: const Color(0xFF059669), // Emerald border
+                width: 2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF000000).withOpacity(0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, 6),
-                  spreadRadius: 1,
+                  color: const Color(0xFF059669).withOpacity(0.15),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
                 BoxShadow(
-                  color: const Color(0xFFFFFFFF).withOpacity(0.8),
-                  blurRadius: 10,
-                  offset: const Offset(-2, -2),
+                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
               ],
-            ),
-            foregroundDecoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: const Color(0xFF000000),
-                width: 2.5,
-              ),
             ),
             child: PremiumTextField(
               controller: nameCtrl,
@@ -508,44 +462,30 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF000000), // Pure black
+            color: Color(0xFF1F2937), // Dark gray
           ),
         ),
         const SizedBox(height: AppSpacing.xs),
         Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.white,
-                const Color(0xFFFAFAFA),
-                Colors.white,
-              ],
-            ),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              width: 2.5,
-              color: Colors.transparent,
+              color: const Color(0xFF059669), // Emerald border
+              width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF000000).withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 6),
-                spreadRadius: 1,
+                color: const Color(0xFF059669).withOpacity(0.15),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
               BoxShadow(
-                color: const Color(0xFFFFFFFF).withOpacity(0.8),
-                blurRadius: 10,
-                offset: const Offset(-2, -2),
+                color: const Color(0xFF10B981).withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
-          ),
-          foregroundDecoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF000000),
-              width: 2.5,
-            ),
           ),
           child: PhoneTextField(
             controller: phoneCtrl,
@@ -572,8 +512,8 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             style: const TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 14,
-              color: Color(0xFF000000), // Pure black
-              fontWeight: FontWeight.w700,
+              color: Color(0xFF059669), // Emerald green
+              fontWeight: FontWeight.w600,
               decoration: TextDecoration.underline,
             ),
           ),
@@ -592,44 +532,30 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF000000), // Pure black
+            color: Color(0xFF1F2937), // Dark gray
           ),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.white,
-                const Color(0xFFFAFAFA),
-                Colors.white,
-              ],
-            ),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              width: 2.5,
-              color: Colors.transparent,
+              color: const Color(0xFF059669), // Emerald border
+              width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF000000).withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 6),
-                spreadRadius: 1,
+                color: const Color(0xFF059669).withOpacity(0.15),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
               BoxShadow(
-                color: const Color(0xFFFFFFFF).withOpacity(0.8),
-                blurRadius: 10,
-                offset: const Offset(-2, -2),
+                color: const Color(0xFF10B981).withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
-          ),
-          foregroundDecoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF000000),
-              width: 2.5,
-            ),
           ),
           child: PremiumTextField(
             controller: otpCtrl,
@@ -650,8 +576,8 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             style: const TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 14,
-              color: Color(0xFF000000), // Pure black
-              fontWeight: FontWeight.w700,
+              color: Color(0xFF059669), // Emerald green
+              fontWeight: FontWeight.w600,
               decoration: TextDecoration.underline,
             ),
           ),
@@ -667,40 +593,34 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF5A5A5A), // Lighter for shine
-            Color(0xFF2A2A2A), // Mid black
-            Color(0xFF000000), // Pure black
-            Color(0xFF0A0A0A), // Deep black
+            Color(0xFF10B981), // Light emerald
+            Color(0xFF059669), // Emerald green
+            Color(0xFF047857), // Deep emerald
           ],
-          stops: [0.0, 0.3, 0.7, 1.0],
+          stops: [0.0, 0.5, 1.0],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          // Main shadow
+          // Emerald glow
           BoxShadow(
-            color: const Color(0xFF000000).withOpacity(0.6),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
+            color: const Color(0xFF059669).withOpacity(0.4),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
             spreadRadius: 2,
           ),
-          // White shine on top-left
+          // Light green shimmer
           BoxShadow(
-            color: const Color(0xFFFFFFFF).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(-4, -4),
-            spreadRadius: 1,
+            color: const Color(0xFF10B981).withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
-          // Extra glow
+          // Soft outer glow
           BoxShadow(
-            color: const Color(0xFF000000).withOpacity(0.3),
-            blurRadius: 48,
-            offset: const Offset(0, 20),
+            color: const Color(0xFF059669).withOpacity(0.2),
+            blurRadius: 32,
+            offset: const Offset(0, 12),
           ),
         ],
-        border: Border.all(
-          color: const Color(0xFFFFFFFF).withOpacity(0.2),
-          width: 1.5,
-        ),
       ),
       child: PrimaryButton(
         text: authState.otpSent ? 'Verify OTP' : 'Send OTP',
@@ -735,8 +655,8 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
                   style: const TextStyle(
                     fontFamily: 'Plus Jakarta Sans',
                     fontSize: 12,
-                    color: Color(0xFF000000), // Pure black
-                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF059669), // Emerald green
+                    fontWeight: FontWeight.w600,
                     decoration: TextDecoration.underline,
                   ),
                 ),
@@ -746,7 +666,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
                 style: const TextStyle(
                   fontFamily: 'Plus Jakarta Sans',
                   fontSize: 12,
-                  color: Color(0xFF4A4A4A),
+                  color: Color(0xFF6B7280),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -757,8 +677,8 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
                   style: const TextStyle(
                     fontFamily: 'Plus Jakarta Sans',
                     fontSize: 12,
-                    color: Color(0xFF000000), // Pure black
-                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF059669), // Emerald green
+                    fontWeight: FontWeight.w600,
                     decoration: TextDecoration.underline,
                   ),
                 ),
