@@ -1,0 +1,42 @@
+name: smartexit
+
+packages:
+  - packages/**
+  - apps/**
+
+scripts:
+  analyze:
+    exec: flutter analyze
+    description: Run Flutter analyze for all packages
+
+  test:
+    exec: flutter test
+    description: Run tests for all packages
+
+  format:
+    exec: dart format lib test
+    description: Format code for all packages
+
+  get:
+    exec: flutter pub get
+    description: Get dependencies for all packages
+
+  build:customer:
+    run: |
+      cd apps/customer_app && flutter build apk --release
+    description: Build customer app APK
+
+  build:store:
+    run: |
+      cd apps/store_app && flutter build apk --release
+    description: Build store app APK
+
+  build:all:
+    run: |
+      melos run build:customer && melos run build:store
+    description: Build both apps
+
+command:
+  version:
+    updateGitTagRefs: true
+    releaseUrl: false

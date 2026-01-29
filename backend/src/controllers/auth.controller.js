@@ -71,7 +71,7 @@ async function register(req, res, next) {
 // POST /auth/verify-otp - Verify OTP and complete registration
 async function verifyOtp(req, res, next) {
   try {
-    const { phone, otp } = req.body;
+    const { phone, otp, expected_role } = req.body;
 
     // Verify OTP
     const verification = await otpService.verifyOTP(phone, otp);
@@ -88,7 +88,7 @@ async function verifyOtp(req, res, next) {
     let user;
 
     if (pending.rows.length > 0) {
-      // Complete registration
+      // Complete registration from pending
       const { name } = pending.rows[0];
       const userId = crypto.randomUUID();
 
@@ -107,18 +107,44 @@ async function verifyOtp(req, res, next) {
       user = { id: userId, phone, name, role: "customer" };
       logger.info(`New user registered: ${phone}`);
     } else {
-      // Existing user login
+      // Check if user exists
       const result = await pool.query(
         "SELECT id, phone, name, role FROM users WHERE phone = $1",
         [phone]
       );
 
       if (result.rows.length === 0) {
-        return error(res, "User not found", 404);
-      }
+        // AUTO-REGISTER: Create new customer if expected_role is 'customer'
+        if (expected_role === 'customer') {
+          const userId = crypto.randomUUID();
+          const userName = phone; // Use phone as name for auto-registered users
 
-      user = result.rows[0];
-      logger.info(`User logged in: ${phone}`);
+          await pool.query(
+            `INSERT INTO users (id, phone, name, role, created_at)
+             VALUES ($1, $2, $3, 'customer', NOW())`,
+            [userId, phone, userName]
+          );
+
+          user = { id: userId, phone, name: userName, role: "customer" };
+          logger.info(`New customer auto-registered: ${phone}`);
+        } else {
+          // Store app users must be pre-created by admin
+          return error(res, "Account not found. Please contact admin for store access", 404);
+        }
+      } else {
+        // Existing user login - validate role if expected_role is provided
+        user = result.rows[0];
+
+        if (expected_role && user.role !== expected_role) {
+          return error(
+            res,
+            `This account is registered as ${user.role}. Please use the correct login option`,
+            403
+          );
+        }
+
+        logger.info(`User logged in: ${phone} (${user.role})`);
+      }
     }
 
     // Generate tokens
@@ -147,20 +173,10 @@ async function verifyOtp(req, res, next) {
   }
 }
 
-// POST /auth/send-otp - Send OTP for login (existing users)
+// POST /auth/send-otp - Send OTP for login/registration
 async function sendOtp(req, res, next) {
   try {
     const { phone } = req.body;
-
-    // Check if user exists
-    const existing = await pool.query(
-      "SELECT id FROM users WHERE phone = $1",
-      [phone]
-    );
-
-    if (existing.rows.length === 0) {
-      return error(res, "User not found. Please register first", 404);
-    }
 
     // Check rate limit
     const canSend = await otpService.checkRateLimit(phone);
@@ -168,13 +184,13 @@ async function sendOtp(req, res, next) {
       return error(res, "Too many OTP requests. Try again later", 429);
     }
 
-    // Generate and send OTP
+    // Generate and send OTP (no need to check if user exists - auto-registration will handle it)
     const otp = otpService.generateOTP();
     await otpService.storeOTP(phone, otp);
     await otpService.sendOTP(phone, otp);
     await otpService.logOTPRequest(phone);
 
-    logger.info(`Login OTP sent to ${phone}`);
+    logger.info(`OTP sent to ${phone}`);
 
     return success(res, {
       message: "OTP sent to your phone",

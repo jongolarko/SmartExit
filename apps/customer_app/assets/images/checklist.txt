@@ -1,0 +1,28 @@
+BACKGROUND IMAGES DOWNLOAD CHECKLIST
+=====================================
+
+Check off each image as you download it:
+
+[ ] login_bg_1.jpg - Happy diverse friends laughing with smartphone
+    https://www.pexels.com/photo/3764496/
+
+[ ] login_bg_2.jpg - Happy diverse couples laughing in park
+    https://www.pexels.com/photo/3777727/
+
+[ ] login_bg_3.jpg - Group of friends laughing together
+    https://www.pexels.com/photo/9287491/
+
+[ ] login_bg_4.jpg - Happy diverse people with beverages
+    https://www.pexels.com/photo/4143429/
+
+[ ] login_bg_5.jpg - Your choice from Pexels!
+    https://www.pexels.com/search/friends%20laughing/
+
+=====================================
+SAVE ALL FILES TO:
+C:\Users\arkoc\smartexit\apps\customer_app\assets\images\
+
+THEN RUN:
+cd apps/customer_app
+flutter run -d chrome
+=====================================

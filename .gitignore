@@ -3,7 +3,7 @@ backend/node_modules/
 backend/.env
 backend/logs/
 
-# Flutter App
+# Flutter App (Legacy Monolith)
 app/.dart_tool/
 app/.packages
 app/build/
@@ -13,6 +13,28 @@ app/android/.gradle/
 app/ios/Pods/
 app/ios/.symlinks/
 app/.flutter-plugins*
+
+# Flutter Packages (Monorepo)
+packages/**/.dart_tool/
+packages/**/.packages
+packages/**/build/
+packages/**/*.iml
+packages/**/.idea/
+packages/**/.flutter-plugins*
+packages/**/pubspec.lock
+
+# Flutter Apps (Monorepo)
+apps/**/.dart_tool/
+apps/**/.packages
+apps/**/build/
+apps/**/*.iml
+apps/**/.idea/
+apps/**/android/.gradle/
+apps/**/android/app/*.jks
+apps/**/ios/Pods/
+apps/**/ios/.symlinks/
+apps/**/.flutter-plugins*
+apps/**/pubspec.lock
 
 # Docker
 *.log
