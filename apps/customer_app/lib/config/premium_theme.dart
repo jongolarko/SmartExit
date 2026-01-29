@@ -2,40 +2,41 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 /// Premium Theme for SmartExit Customer App
-/// Design System: Shiny White + Matte Black + Minimalist
+/// Design System: Pure White + Shiny Black + Luxury Minimalist
 /// Typography: Plus Jakarta Sans (bundled for performance)
 class PremiumColors {
   PremiumColors._();
 
   // ============================================
-  // PRIMARY COLORS - Shiny White
+  // PRIMARY COLORS - Pure White
   // ============================================
-  static const Color primary = Color(0xFFFFFFFF);           // Pure white
-  static const Color primaryDark = Color(0xFFF5F5F5);       // Light gray
+  static const Color primary = Color(0xFFFFFFFF);           // Pure white background
+  static const Color primaryDark = Color(0xFFFAFAFA);       // Off-white
   static const Color primaryLight = Color(0xFFFFFFFF);      // Pure white
-  static const Color primaryUltraLight = Color(0xFFFAFAFA); // Off-white background
+  static const Color primaryUltraLight = Color(0xFFFFFFFF); // Pure white
 
   // ============================================
-  // ACCENT COLORS - Matte Black
+  // ACCENT COLORS - Shiny Black
   // ============================================
-  static const Color accent = Color(0xFF1A1A1A);       // Matte black
+  static const Color accent = Color(0xFF000000);       // Pure black (shiny)
   static const Color accentDark = Color(0xFF0A0A0A);   // Deep black
-  static const Color accentGold = Color(0xFFC0C0C0);   // Silver
+  static const Color accentLight = Color(0xFF2A2A2A);  // Light shiny black
+  static const Color accentGold = Color(0xFFC0C0C0);   // Silver accent
 
   // ============================================
   // NEUTRAL PALETTE
   // ============================================
   static const Color background = Color(0xFFFFFFFF);      // Pure white
-  static const Color surface = Color(0xFFFAFAFA);         // Off-white
-  static const Color darkBackground = Color(0xFF1A1A1A);  // Matte black
-  static const Color cardBackground = Color(0xFFF5F5F5);  // Light gray
+  static const Color surface = Color(0xFFFFFFFF);         // Pure white
+  static const Color darkBackground = Color(0xFF000000);  // Pure black
+  static const Color cardBackground = Color(0xFFFFFFFF);  // Pure white
 
   // ============================================
   // TEXT COLORS
   // ============================================
-  static const Color textPrimary = Color(0xFF1A1A1A);   // Matte black
-  static const Color textSecondary = Color(0xFF6B6B6B); // Dark gray
-  static const Color textTertiary = Color(0xFF9E9E9E);  // Medium gray
+  static const Color textPrimary = Color(0xFF000000);   // Pure black
+  static const Color textSecondary = Color(0xFF1A1A1A); // Shiny black
+  static const Color textTertiary = Color(0xFF4A4A4A);  // Dark gray
   static const Color onDark = Color(0xFFFFFFFF);        // Pure white on dark
 
   // ============================================
@@ -46,22 +47,28 @@ class PremiumColors {
   static const Color error = Color(0xFFEF4444);    // Red
 
   // ============================================
-  // GRADIENTS
+  // GRADIENTS - Shiny Black
   // ============================================
   static const LinearGradient heroGradient = LinearGradient(
-    colors: [Color(0xFFFFFFFF), Color(0xFF1A1A1A)], // Shiny white to matte black
+    colors: [Color(0xFF2A2A2A), Color(0xFF000000)], // Shiny black gradient
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient subtleGradient = LinearGradient(
-    colors: [Color(0xFFFFFFFF), Color(0xFFF5F5F5)],
+    colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFFFFFFFF), Color(0xFFE5E5E5)],
+    colors: [Color(0xFF2A2A2A), Color(0xFF000000)], // Shiny black
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient shinyBlackGradient = LinearGradient(
+    colors: [Color(0xFF2A2A2A), Color(0xFF0A0A0A)], // Premium shiny black
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -155,26 +162,40 @@ class PremiumShadows {
     ),
   ];
 
-  // Glow effect for primary elements (shiny white)
+  // Glow effect for shiny black elements
   static List<BoxShadow> glow = [
     BoxShadow(
-      color: const Color(0xFFFFFFFF).withOpacity(0.8),
+      color: const Color(0xFF000000).withOpacity(0.3),
       blurRadius: 24,
       offset: const Offset(0, 8),
     ),
     BoxShadow(
-      color: const Color(0xFFE5E5E5).withOpacity(0.6),
-      blurRadius: 12,
-      offset: const Offset(0, 4),
+      color: const Color(0xFFFFFFFF).withOpacity(0.1),
+      blurRadius: 8,
+      offset: const Offset(-2, -2),
     ),
   ];
 
-  // Accent glow for matte black elements
-  static List<BoxShadow> accentGlow = [
+  // Premium shiny black glow
+  static List<BoxShadow> shinyBlackGlow = [
     BoxShadow(
-      color: const Color(0xFF1A1A1A).withOpacity(0.4),
+      color: const Color(0xFF000000).withOpacity(0.4),
       blurRadius: 24,
       offset: const Offset(0, 8),
+    ),
+    BoxShadow(
+      color: const Color(0xFFFFFFFF).withOpacity(0.1),
+      blurRadius: 8,
+      offset: const Offset(-2, -2),
+    ),
+  ];
+
+  // Accent glow for shiny black elements
+  static List<BoxShadow> accentGlow = [
+    BoxShadow(
+      color: const Color(0xFF000000).withOpacity(0.3),
+      blurRadius: 20,
+      offset: const Offset(0, 6),
     ),
   ];
 }

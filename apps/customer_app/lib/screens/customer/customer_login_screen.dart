@@ -251,45 +251,10 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
   }
 
   Widget _buildBackground() {
-    return Stack(
-      children: [
-        // Base gradient background - Shiny white to matte black
-        Positioned.fill(
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFFFFFFF), // Shiny white
-                  Color(0xFFF5F5F5), // Light gray (transition)
-                  Color(0xFF8E8E8E), // Medium gray (blend)
-                  Color(0xFF1A1A1A), // Matte black
-                ],
-                stops: [0.0, 0.3, 0.6, 1.0],
-              ),
-            ),
-          ),
-        ),
-
-        // Subtle overlay for depth and shine effect
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white.withOpacity(0.15),
-                  Colors.transparent,
-                  Colors.black.withOpacity(0.2),
-                ],
-                stops: const [0.0, 0.5, 1.0],
-              ),
-            ),
-          ),
-        ),
-      ],
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFFFFF), // Pure white background
+      ),
     );
   }
 
@@ -341,45 +306,80 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Logo with gradient
+        // Logo with shiny black
         Container(
           width: 72,
           height: 72,
-          decoration: PremiumTheme.gradientDecoration(
-            radius: 20,
-            shadows: PremiumShadows.glow,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF2A2A2A), // Shiny black
+                Color(0xFF0A0A0A), // Deep black
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF000000).withOpacity(0.3),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+              BoxShadow(
+                color: const Color(0xFFFFFFFF).withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(-2, -2),
+              ),
+            ],
           ),
           padding: const EdgeInsets.all(16),
           child: Image.asset(
             'assets/images/SmartExit_Logo.png',
             fit: BoxFit.contain,
+            color: Colors.white,
           ),
         ),
 
         const SizedBox(height: 32),
 
-        // Title with Plus Jakarta Sans
+        // Title with Plus Jakarta Sans - Shiny Black
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 32,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1A1A1A), // Matte black for contrast
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF000000), // Pure black
             height: 1.1,
+            shadows: [
+              Shadow(
+                color: const Color(0xFF000000).withOpacity(0.2),
+                offset: const Offset(2, 2),
+                blurRadius: 4,
+              ),
+            ],
           ),
         ),
 
         const SizedBox(height: 8),
 
-        // Subtitle with Plus Jakarta Sans
+        // Subtitle with Plus Jakarta Sans - Shiny Black
         Text(
           subtitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 16,
-            color: Color(0xFF4A4A4A), // Dark gray for readability
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF1A1A1A), // Shiny black
             height: 1.5,
+            shadows: [
+              Shadow(
+                color: const Color(0xFF000000).withOpacity(0.1),
+                offset: const Offset(1, 1),
+                blurRadius: 2,
+              ),
+            ],
           ),
         ),
       ],
@@ -396,17 +396,34 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             style: const TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF2A2A2A),
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF000000), // Pure black
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          PremiumTextField(
-            controller: nameCtrl,
-            focusNode: _nameFocus,
-            label: 'Enter your name',
-            autofocus: true,
-            onSubmitted: (_) => _phoneFocus.requestFocus(),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF000000),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF000000).withOpacity(0.1),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: PremiumTextField(
+              controller: nameCtrl,
+              focusNode: _nameFocus,
+              label: 'Enter your name',
+              autofocus: true,
+              onSubmitted: (_) => _phoneFocus.requestFocus(),
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
         ],
@@ -415,18 +432,35 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
           style: const TextStyle(
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF2A2A2A),
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF000000), // Pure black
           ),
         ),
         const SizedBox(height: AppSpacing.xs),
-        PhoneTextField(
-          controller: phoneCtrl,
-          focusNode: _phoneFocus,
-          label: 'Enter your number',
-          countryCode: '+91',
-          autofocus: !isNewUser,
-          onSubmitted: (_) => _sendOtp(),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFF000000),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF000000).withOpacity(0.1),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: PhoneTextField(
+            controller: phoneCtrl,
+            focusNode: _phoneFocus,
+            label: 'Enter your number',
+            countryCode: '+91',
+            autofocus: !isNewUser,
+            onSubmitted: (_) => _sendOtp(),
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         // Toggle new user
@@ -444,8 +478,9 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             style: const TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 14,
-              color: Color(0xFF1A1A1A), // Matte black
-              fontWeight: FontWeight.w600,
+              color: Color(0xFF000000), // Pure black
+              fontWeight: FontWeight.w700,
+              decoration: TextDecoration.underline,
             ),
           ),
         ),
@@ -462,19 +497,36 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
           style: const TextStyle(
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF2A2A2A),
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF000000), // Pure black
           ),
         ),
         const SizedBox(height: 8),
-        PremiumTextField(
-          controller: otpCtrl,
-          focusNode: _otpFocus,
-          label: 'Enter 6-digit OTP',
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          maxLength: 6,
-          onSubmitted: (_) => _verifyOtp(),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFF000000),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF000000).withOpacity(0.1),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: PremiumTextField(
+            controller: otpCtrl,
+            focusNode: _otpFocus,
+            label: 'Enter 6-digit OTP',
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            onSubmitted: (_) => _verifyOtp(),
+          ),
         ),
         const SizedBox(height: 16),
         // Resend OTP
@@ -485,8 +537,9 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             style: const TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 14,
-              color: Color(0xFF1A1A1A), // Matte black
-              fontWeight: FontWeight.w600,
+              color: Color(0xFF000000), // Pure black
+              fontWeight: FontWeight.w700,
+              decoration: TextDecoration.underline,
             ),
           ),
         ),
@@ -495,11 +548,36 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
   }
 
   Widget _buildActionButton(AuthState authState) {
-    return PrimaryButton(
-      text: authState.otpSent ? 'Verify OTP' : 'Send OTP',
-      onPressed: authState.otpSent ? _verifyOtp : _sendOtp,
-      isLoading: authState.isLoading,
-      icon: authState.otpSent ? Icons.check_rounded : Icons.arrow_forward_rounded,
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF2A2A2A), // Shiny black
+            Color(0xFF000000), // Deep black
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withOpacity(0.4),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: const Color(0xFFFFFFFF).withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(-2, -2),
+          ),
+        ],
+      ),
+      child: PrimaryButton(
+        text: authState.otpSent ? 'Verify OTP' : 'Send OTP',
+        onPressed: authState.otpSent ? _verifyOtp : _sendOtp,
+        isLoading: authState.isLoading,
+        icon: authState.otpSent ? Icons.check_rounded : Icons.arrow_forward_rounded,
+      ),
     );
   }
 
@@ -512,7 +590,8 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             style: const TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 12,
-              color: Color(0xFF6B6B6B),
+              color: Color(0xFF4A4A4A),
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 4),
@@ -526,8 +605,9 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
                   style: const TextStyle(
                     fontFamily: 'Plus Jakarta Sans',
                     fontSize: 12,
-                    color: Color(0xFF1A1A1A), // Matte black
-                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF000000), // Pure black
+                    fontWeight: FontWeight.w700,
+                    decoration: TextDecoration.underline,
                   ),
                 ),
               ),
@@ -536,7 +616,8 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
                 style: const TextStyle(
                   fontFamily: 'Plus Jakarta Sans',
                   fontSize: 12,
-                  color: Color(0xFF6B6B6B),
+                  color: Color(0xFF4A4A4A),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               GestureDetector(
@@ -546,8 +627,9 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
                   style: const TextStyle(
                     fontFamily: 'Plus Jakarta Sans',
                     fontSize: 12,
-                    color: Color(0xFF1A1A1A), // Matte black
-                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF000000), // Pure black
+                    fontWeight: FontWeight.w700,
+                    decoration: TextDecoration.underline,
                   ),
                 ),
               ),
