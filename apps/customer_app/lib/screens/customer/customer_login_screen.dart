@@ -253,7 +253,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
   Widget _buildBackground() {
     return Stack(
       children: [
-        // Base gradient background
+        // Base gradient background - Shiny white to matte black
         Positioned.fill(
           child: Container(
             decoration: const BoxDecoration(
@@ -261,17 +261,18 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  PremiumColors.primary,
-                  Color(0xFF6B2ECE), // Blend between primary and accent
-                  Color(0xFFFF6B9D), // PremiumColors.accent
+                  Color(0xFFFFFFFF), // Shiny white
+                  Color(0xFFF5F5F5), // Light gray (transition)
+                  Color(0xFF8E8E8E), // Medium gray (blend)
+                  Color(0xFF1A1A1A), // Matte black
                 ],
-                stops: [0.0, 0.5, 1.0],
+                stops: [0.0, 0.3, 0.6, 1.0],
               ),
             ),
           ),
         ),
 
-        // Gradient overlay for text readability
+        // Subtle overlay for depth and shine effect
         Positioned.fill(
           child: Container(
             decoration: BoxDecoration(
@@ -279,12 +280,11 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  PremiumColors.primary.withOpacity(0.85),
-                  PremiumColors.primary.withOpacity(0.6),
-                  PremiumColors.primary.withOpacity(0.3),
+                  Colors.white.withOpacity(0.15),
                   Colors.transparent,
+                  Colors.black.withOpacity(0.2),
                 ],
-                stops: const [0.0, 0.3, 0.6, 1.0],
+                stops: const [0.0, 0.5, 1.0],
               ),
             ),
           ),
@@ -365,7 +365,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 32,
             fontWeight: FontWeight.w700,
-            color: PremiumColors.textPrimary,
+            color: Color(0xFF1A1A1A), // Matte black for contrast
             height: 1.1,
           ),
         ),
@@ -378,7 +378,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
           style: const TextStyle(
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 16,
-            color: PremiumColors.textSecondary,
+            color: Color(0xFF4A4A4A), // Dark gray for readability
             height: 1.5,
           ),
         ),
@@ -397,7 +397,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: PremiumColors.textSecondary,
+              color: Color(0xFF2A2A2A),
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -416,7 +416,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: PremiumColors.textSecondary,
+            color: Color(0xFF2A2A2A),
           ),
         ),
         const SizedBox(height: AppSpacing.xs),
@@ -444,7 +444,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             style: const TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 14,
-              color: PremiumColors.primary,
+              color: Color(0xFF1A1A1A), // Matte black
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -463,7 +463,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: PremiumColors.textSecondary,
+            color: Color(0xFF2A2A2A),
           ),
         ),
         const SizedBox(height: 8),
@@ -485,7 +485,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             style: const TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 14,
-              color: PremiumColors.primary,
+              color: Color(0xFF1A1A1A), // Matte black
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -512,7 +512,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
             style: const TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 12,
-              color: PremiumColors.textSecondary,
+              color: Color(0xFF6B6B6B),
             ),
           ),
           const SizedBox(height: 4),
@@ -526,7 +526,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
                   style: const TextStyle(
                     fontFamily: 'Plus Jakarta Sans',
                     fontSize: 12,
-                    color: PremiumColors.primary,
+                    color: Color(0xFF1A1A1A), // Matte black
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -536,7 +536,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
                 style: const TextStyle(
                   fontFamily: 'Plus Jakarta Sans',
                   fontSize: 12,
-                  color: PremiumColors.textSecondary,
+                  color: Color(0xFF6B6B6B),
                 ),
               ),
               GestureDetector(
@@ -546,7 +546,7 @@ class _CustomerLoginScreenState extends ConsumerState<CustomerLoginScreen>
                   style: const TextStyle(
                     fontFamily: 'Plus Jakarta Sans',
                     fontSize: 12,
-                    color: PremiumColors.primary,
+                    color: Color(0xFF1A1A1A), // Matte black
                     fontWeight: FontWeight.w600,
                   ),
                 ),
